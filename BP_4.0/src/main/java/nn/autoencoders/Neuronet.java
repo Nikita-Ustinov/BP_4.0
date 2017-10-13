@@ -8,12 +8,12 @@ public final class Neuronet implements Serializable
     public List l0, l1, l2;
     public static int inputLength = 2048;	//pro fully connection neuronet
     public static int prvniVrstva =  900;		
-    public static int druhaVrstva = 100;		
-    public static int tretiVrstva = 2;
-    public static double speedLFCN = 0.0007;				//rychlost uceni pro "fully connection neuronet"
-    public static double speedL1CL = 0.0007;				//rychlost uceni pro prvni "convolution layer" 10 az 14
-    public static double speedL2CL = 0.0007;				//rychlost uceni pro druhy "convolution layer"  5 az 9
-    public static double speedL3CL = 0.0007;				//rychlost uceni pro treti "convolution layer"  0 az 4
+    public static int druhaVrstva = 200;		
+    public static int tretiVrstva = 100;
+    public static double speedLFCN = 0.001;				//rychlost uceni pro "fully connection neuronet"
+    public static double speedL1CL = 0.001;				//rychlost uceni pro prvni "convolution layer" 10 az 14
+    public static double speedL2CL = 0.001;				//rychlost uceni pro druhy "convolution layer"  5 az 9
+    public static double speedL3CL = 0.001;				//rychlost uceni pro treti "convolution layer"  0 az 4
     public static int inputPictureFormat = 40; //px                         //jestli napriklad obrazek 20x20 davame sem 20
     public int inputLengthOwn;
     public int prvniVrstvaOwn;
@@ -21,7 +21,8 @@ public final class Neuronet implements Serializable
     public int tretiVrstvaOwn;
     public ListOfConvolutions convolutions ;
     public static int cisloFiltra = 0;
-    public static int numberOfFulters = 24;
+    public static final int numberOfFulters = 24;
+    public static final int counvolutionGroups = 4;
 
     public Neuronet()
     {

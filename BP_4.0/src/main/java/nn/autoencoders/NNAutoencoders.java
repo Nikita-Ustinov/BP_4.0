@@ -15,8 +15,6 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import java.util.HashMap;
-import com.mycompany.segmentation.Segmentation;
 
 public class NNAutoencoders implements Serializable {
 
@@ -33,193 +31,41 @@ public class NNAutoencoders implements Serializable {
     public int iterationWithoutNewNeuron = 0;
     boolean newNeuron = false;
     static int stillOneValue = -1;
-    static LinkedList<Integer> withRoeDeer = new LinkedList<>();
-    static LinkedList<Integer> withoutRoeDeer = new LinkedList<>();
-    static int counterWithRoe = 0; // pocet zpracovanych obrazku v sete s srnkou v ere
-    static int counterWithoutRoe = 0; // pocet zpracovanych obrazku v sete bez srnky v ere
-    static int learningSet = 132;
-    static int testSet = 500;
-//    static BufferedImage result;
+    static int learningSet = 4;
+    static int peopleInSet = 2;
+    static int[][] combi = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}}; //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
+    static HashMap<Integer, String> imgNumber = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
         createFirstDataSet();
-//        net = deserializationNN("Best weights");
-//        String test = checkOneClass("Without");
-//        test+="\r\n"+"With:"+"\r\n";
-//        test+=checkOneClass("With");
-//        write("testResult", test);
-        
-//        System.out.println("");
-//        System.out.println("with:");
-//        System.out.println("");
-//        checkOneClass("With");
-//        checkOnePicture();
-//        exam2();
-//        writeProgressInfo(101,test("normal"));					//vysledek ve fajlu "short progress info"
+//        net = deseralizace("BestWeights");
         net = new Neuronet();
         study();
     }
     
-    static void newEpoch() {
-//        withRoeDeer = new LinkedList<>();
-//        withoutRoeDeer = new LinkedList<>();
-        shuffleDataSets();
-        counterWithRoe = 0;
-        counterWithoutRoe = 0;
-    }
-    
     static void shuffleDataSets() {
         int elementNumber;
-        int templ;
-        for(int i=0; i<learningSet-1; i++) {
-            elementNumber = (int)(Math.random()*(learningSet-i-1));
-            templ = withRoeDeer.get(learningSet-i-1);
-            withRoeDeer.set(learningSet-i-1, withRoeDeer.get(elementNumber));
-            withRoeDeer.set(elementNumber, templ);
-        }
-        
-        for(int i=0; i<learningSet-1; i++) {
-            elementNumber = (int)(Math.random()*(learningSet-i-1));
-            if(elementNumber <0 ){
-                elementNumber = elementNumber;
-            }
-            templ = withoutRoeDeer.get(learningSet-i-1);
-            withoutRoeDeer.set(learningSet-i-1, withoutRoeDeer.get(elementNumber));
-            withoutRoeDeer.set(elementNumber, templ);
-        }
-    }
-    
-    static void tryRandom() {
-        int a = 0; 
-        int b = 20;
-        for(int i=0; i< 200; i++) {
-            System.out.println((int)(Math.random()*b));   
-        }
-    }
-    
-    static void printDataSets() {
-        System.out.println("With roe: ");
-        for(int i=0; i<learningSet; i++) {
-            System.out.println(withRoeDeer.get(i));
-        }
-        System.out.println("");
-        System.out.println("Without roe: ");
-        for(int i=0; i<learningSet; i++) {
-            System.out.println(withoutRoeDeer.get(i));
+        int[] templ;
+        for(int i=0; i<combi.length-1; i++) {
+            elementNumber = (int)(Math.random()*(combi.length-i-1));
+            templ = combi[combi.length-i-1];
+            combi[learningSet-i-1] = combi[elementNumber];
+            combi[elementNumber] = templ;
         }
     }
     
     static void createFirstDataSet() {
-        int tryNumber = -1;
-        boolean isLoad;
-        BufferedImage img = null;
-        for(int i=0; i<learningSet; i++) { // zapisuje data set pro class "with roe-deer"
-            isLoad = false;
-            
-            do {
-                try{
-                    tryNumber++;
-                    img = ImageIO.read(new File("Data set/Learning set/With roe-deer/"+tryNumber+".jpg"));
-                    isLoad = true;
-                }catch (Exception e){}
-                
-            }while(!isLoad);
-            withRoeDeer.addLast(tryNumber);
-        }
-        
-        tryNumber = -1;
-        for(int i=0; i<learningSet; i++) { // zapisuje data set pro class "without roe-deer"
-            isLoad = false;
-            do {
-                tryNumber++;
-                try{
-                    img = ImageIO.read(new File("Data set/Learning set/Without roe-deer/"+tryNumber+".jpg"));
-                    isLoad = true;
-                }catch (Exception e){}
-                
-            }while(!isLoad);
-            withoutRoeDeer.addLast(tryNumber);
-        }
+       String way = "Data set/";
+       int counter = 0;
+       for(int i=0; i<peopleInSet; i++) {
+           for(int j=0; j<learningSet/peopleInSet; j++) {
+               imgNumber.put(counter, way+i+"/"+j+".jpg");
+               counter++;
+           }
+       }
     }
 
     public NNAutoencoders(int i) {}
-    
-    static Picture getPicture(boolean ifColor, String mode) throws Exception {  //mode:normal - pro bezny studium(na learning sete), test-pro zkouseni na test sete
-        Random rand = new Random();
-        BufferedImage img = null;						//vychozi obrazek
-        int choose = -1;							//0 - bude vybran obrazek s srnkou , 1 -bez 
-        String path; 								//pro smerovani k mnozestvum obrazku
-        String imgWay = null;                                                          //pro vysledny obrazek 
-        if ("normal".equals(mode)) {
-            path = "Learning set";
-        }
-        else {
-            path = "Test set";
-        }
-        if ((counterWithRoe < learningSet)&&(counterWithoutRoe < learningSet)){
-            choose = rand.nextInt(2);  
-        }
-        else { if((counterWithoutRoe == learningSet)&&(counterWithRoe < learningSet)) {
-                choose = 0;
-               }
-               else if((counterWithRoe ==learningSet) && (counterWithoutRoe <learningSet)) {
-                        choose = 1;
-                    }
-                    else {
-                        throw new Exception("Chyba ve vyberu obrazku");
-                    }
-        }
-        boolean isLaod;
-        if (choose == 0) {
-            img = ImageIO.read(new File("Data set/"+path+"/With roe-deer/"+withRoeDeer.get(counterWithRoe)+".jpg"));
-            imgWay = "Data set/"+path+"/With roe-deer/"+withRoeDeer.get(counterWithRoe)+".jpg";
-            counterWithRoe++;
-        }
-        else {
-            img = ImageIO.read(new File("Data set/"+path+"/Without roe-deer/"+withoutRoeDeer.get(counterWithoutRoe)+".jpg"));
-            imgWay = "Data set/"+path+"/Without roe-deer/"+withoutRoeDeer.get(counterWithoutRoe)+".jpg";
-            counterWithoutRoe++;
-        }
-        Answer = choose;
-        return ImgToRightPicture(imgWay, ifColor); 							
-    }
-
-    //Rika jestli obrazek uz byl zpracovan v dane ere
-    static boolean isAlreadyBeen(int pictureNumber, int isRoeSet, boolean isLaod) {
-        if(!isLaod) { //jestli jeste nemame spravne cislo obrazku vratime se zpet do cikla
-            return true;
-        }
-        if(isRoeSet == 0) {
-            if(!withRoeDeer.isEmpty()) {
-                if(withRoeDeer.contains(pictureNumber)) {
-                    return true;
-                }
-                else {
-                    withRoeDeer.addLast(pictureNumber);
-                    return false;
-                }
-            }
-            else {
-                withRoeDeer.addLast(pictureNumber);
-                return false;
-            }
-        }
-        else {
-            if(!withoutRoeDeer.isEmpty()) {
-                if(withoutRoeDeer.contains(pictureNumber)) {
-                    return true;
-                }
-                else {
-                    withoutRoeDeer.addLast(pictureNumber);
-                    return false;
-                }
-            }
-            else {
-                withoutRoeDeer.addLast(pictureNumber);
-                return false;
-            }
-        }
-    }
     
     static Picture ImgToRightPicture(BufferedImage img, boolean isColor) throws Exception {
         if (img == null) {
@@ -324,54 +170,40 @@ public class NNAutoencoders implements Serializable {
             templ.clearOutput();
             templ = templ.next;
         }
-        Picture[] firstConvolution = new Picture[net.convolutions.size / Neuronet.counvolutionGroups];		//РјР°СЃСЃРёРІ РјР°СЃСЃРёРІРѕРІ?? [][,]		//prvni vrstva, convolution 11x11
-        for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
-            firstConvolution[i] = new Picture(applyConvolution(i, picture));            //prvni konvoluce
+        Picture[] firstConvolution = new Picture[net.convolutions.size / 3];		//РјР°СЃСЃРёРІ РјР°СЃСЃРёРІРѕРІ?? [][,]		//prvni vrstva, convolution 11x11
+        for (int i = 0; i < net.convolutions.size / 3; i++) {
+            firstConvolution[i] = new Picture(applyConvolution(i, picture));			//prvni konvoluce
             firstConvolution[i].map2D = function(firstConvolution[i].map2D, "Tanh");	// prvni funkce aktivace (Tanh)
             firstConvolution[i].map2D = pooling(2, firstConvolution[i].map2D);		//prvni pooling
         }
-        Picture[] secondConvolution = new Picture[(int)Math.pow(net.convolutions.size/Neuronet.counvolutionGroups, 2)];
-        int cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups ;
+        Picture[] secondConvolution = new Picture[(int)Math.pow(net.convolutions.size/3, 2)];
+        int cisloFiltra = net.convolutions.size / 3 ;
         int cisloPolozky = 0;
-        for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
-            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+        for (int j = 0; j < net.convolutions.size / 3; j++) {
+            for (int i = 0; i < net.convolutions.size / 3; i++) {
                 secondConvolution[cisloPolozky] = new Picture(applyConvolution(cisloFiltra, firstConvolution[j]));
                 secondConvolution[cisloPolozky].map2D = function(secondConvolution[cisloPolozky].map2D, "Tanh");
                 secondConvolution[cisloPolozky].map2D = pooling(2, secondConvolution[cisloPolozky].map2D);
                 cisloFiltra++;
                 cisloPolozky++;
             }
-            cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups;
+            cisloFiltra = net.convolutions.size / 3;
         }
-        Picture[] thirdConvolution = new Picture[(int)Math.pow(net.convolutions.size / Neuronet.counvolutionGroups, 3)] ;
-        cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 2;
+        double[][][] thirdConvolution = new double[(int)Math.pow(net.convolutions.size / 3, 3)][][];
+        cisloFiltra = net.convolutions.size / 3 * 2;
         cisloPolozky = 0;
-        for (int j = 0; j < Math.pow(net.convolutions.size / Neuronet.counvolutionGroups, 2); j++) {
-            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
-                thirdConvolution[cisloPolozky] = new Picture(applyConvolution(cisloFiltra, secondConvolution[j]));
-                thirdConvolution[cisloPolozky].map2D = function(thirdConvolution[cisloPolozky].map2D, "Tanh");
-                thirdConvolution[cisloPolozky].map2D = pooling(2, thirdConvolution[cisloPolozky].map2D);
+        for (int j = 0; j < Math.pow(net.convolutions.size / 3, 2); j++) {
+            for (int i = 0; i < net.convolutions.size / 3; i++) {
+                thirdConvolution[cisloPolozky] = applyConvolution(cisloFiltra, secondConvolution[j]);
+//                thirdConvolution[cisloPolozky] = addY(thirdConvolution[cisloPolozky]);
+                thirdConvolution[cisloPolozky] = function(thirdConvolution[cisloPolozky], "Tanh");
+                thirdConvolution[cisloPolozky] = pooling(2, thirdConvolution[cisloPolozky]);
                 cisloFiltra++;
                 cisloPolozky++;
             }
-            cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 2;
+            cisloFiltra = net.convolutions.size / 3 * 2;
         }
-        
-        Picture[] fourthConvolution = new Picture[(int)Math.pow(net.convolutions.size / Neuronet.counvolutionGroups, 4)];
-        cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 3;
-        cisloPolozky = 0;
-        for (int j = 0; j < thirdConvolution.length; j++) {
-            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
-                fourthConvolution[cisloPolozky] = new Picture(applyConvolution(cisloFiltra, thirdConvolution[j]));
-                fourthConvolution[cisloPolozky].map2D = function(fourthConvolution[cisloPolozky].map2D, "Tanh");
-//                fourthConvolution[cisloPolozky].map2D = pooling(2, fourthConvolution[cisloPolozky].map2D);
-                cisloFiltra++;
-                cisloPolozky++;
-            }
-            cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 3;
-        }
-        
-        double[] inputFullyConnectionNet = doOneArray(fourthConvolution);
+        double[] inputFullyConnectionNet = doOneArray(thirdConvolution);
         net.l0.writeInput(inputFullyConnectionNet);				//zapisuje vstupni vektor v "fully connected" neuronovou sit
         net.l0.countOutputs();
         Neuron templ1 = net.l1.head;
@@ -410,13 +242,8 @@ public class NNAutoencoders implements Serializable {
 
     static double[][] function(double[][] picture, String nazevFunkce) {
         double[][] result = picture;
-        int jEnd = 1;
-        try{
-            jEnd = picture[1].length;
-        } catch(Exception e) {}
-        
         for (int i = 0; i < picture.length; i++) {
-            for (int j = 0; j < jEnd; j++) {
+            for (int j = 0; j < picture[1].length; j++) {
                 if (nazevFunkce == "Tanh") {
                     result[i][j] = 1.7159 * Math.tanh(0.66 * picture[i][j]);
                 } else if (nazevFunkce == "ReLu") {
@@ -438,8 +265,6 @@ public class NNAutoencoders implements Serializable {
         long checkpoint, runTime;
         double finalTest;
         String struct = writeSrtuct();  //popisuje strukturu seti
-        RealTimeChart.firstShowChart();
-        RealTimeChart.displayValueOnChart(100, false);
 //        do {
 //            doNNMoreClever();
 //            finalTest = test("test");
@@ -462,305 +287,257 @@ public class NNAutoencoders implements Serializable {
         }
     }
     
-    static void sendReport(String struct, double finalTest) {
-        EmailClient em;
-        if("Start learning".equals(struct)) {
-             em = new EmailClient("ustinov_nikita_01@mail.ru", "report", "Start learning");
-        }
-        else {
-            String report = progressInfo + "\r\n" + finalTest  + "\r\n" + struct;
-            em = new EmailClient("ustinov_nikita_01@mail.ru", "report", report);
-        }
-    }
+//    static void sendReport(String struct, double finalTest) {
+//        EmailClient em;
+//        if("Start learning".equals(struct)) {
+//             em = new EmailClient("ustinov_nikita_01@mail.ru", "report", "Start learning");
+//        }
+//        else {
+//            String report = progressInfo + "\r\n" + finalTest  + "\r\n" + struct;
+//            em = new EmailClient("ustinov_nikita_01@mail.ru", "report", report);
+//        }
+//    }
     
     static void doNNMoreClever() throws Exception {
         double[] err = new double[Neuronet.tretiVrstva];
+        double[] output0 = new double[Neuronet.tretiVrstva];
+        double[] output1 = new double[Neuronet.tretiVrstva];
+        double[] output2 = new double[Neuronet.tretiVrstva];
         int iteration = 1;
         double lokError = 0;
         int lokResult = 0;
+        int lastError;
         double errorMin = 100;
         int testValue = 0;
         int bestTestValue = 0;
-        int gradNull = 0;
-        double lastResult = -1;
-        int changeIteration = 0;
+//        int gradNull = 0;
+//        double lastResult = -1;
+//        int changeIteration = 0;
         boolean shakeFlag = false;
-        double lastError = -1;
-        int epochaWithoutNewNeuron = 0;
-        boolean isEndOfLearning = false;
-        boolean testFlag = false;
-
-        while (!isEndOfLearning) {
-            lokResult = calculateResult(getPicture(true, "normal"));
-            Neuron templ3 = net.l2.head;
-            if((Double.isNaN(templ3.weights[1])||(Double.isNaN(net.l0.head.weights[1]))||(Double.isNaN(net.l1.head.weights[1])))) { //kontrola siti
-                System.out.println("NAN NAN NAN iteration "+ iteration);   //kontrola neuronu
-            }
-            for (int i = 0; i < Neuronet.tretiVrstva; i++) {
-                if (Answer == i) {
-                    err[i] = Max - templ3.output;				//zapisuje signal chyby vystupni vrstvy
-                } else {
-                    err[i] = 0 - templ3.output;
-                }
-                templ3 = templ3.next;
-            }
-            Neuron templ2;
-            templ3 = net.l2.head;
-            for (int i = 0; i < Neuronet.tretiVrstva; i++) {
-                templ2 = net.l1.head;
-                templ3.grad = 0.388 * (1.716 - templ3.output) * (1.716 + templ3.output) * err[i];//1.7159   //pocita gradient pro vystupni vyrstvu
-                for (int j = 0; j < Neuronet.druhaVrstva; j++) {
-                    templ3.weights[j] += net.speedLFCN * templ2.output * templ3.grad;     //pocita vahy pro vystupni vrstvu
-                    templ2 = templ2.next;
-                }
-                templ3 = templ3.next;
-            }
-
-            double grad = 0;
-            Neuron templ1;
-            templ2 = net.l1.head;
-            for (int i = 0; i < Neuronet.druhaVrstva; i++) {
-                grad = 0;
-                templ3 = net.l2.head;
-                for (int u = 0; u < Neuronet.tretiVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro druhou vrstvu)
-                    grad += templ3.grad * templ3.weights[i];
-                    templ3 = templ3.next;
-                }
-                templ2.grad = grad * 0.388 * (1.716 - templ2.output) * (1.716 + templ2.output);//1.7159
-                templ1 = net.l0.head;
-                for (int j = 0; j < Neuronet.prvniVrstva; j++) {
-                    templ2.weights[j] += net.speedLFCN * templ1.output * templ2.grad;
-                    templ1 = templ1.next;
-                }
-                templ2 = templ2.next;
-            }
-
-            templ1 = net.l0.head;
-            for (int i = 0; i < Neuronet.prvniVrstva; i++) {
-                grad = 0;
-                templ2 = net.l1.head;
-                for (int u = 0; u < Neuronet.druhaVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro prvni vrstvu)
-                    grad += templ2.grad * templ2.weights[i];
-                    templ2 = templ2.next;
-                }
-                templ1.grad = grad * 0.388 * (1.716 - templ1.output) * (1.716 + templ1.output);//1.7159
-                for (int j = 0; j < Neuronet.inputLength; j++) {
-                    templ1.weights[j] += net.speedLFCN * templ1.input[j] * grad;
-                }
-                templ1 = templ1.next;
-            }
-            
-            
-            //pro filtry 15 az 19
-            int minusCounter = 1;
-            Convolution templ = net.convolutions.head;
-            while (templ.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter) ) {
-                templ = templ.next;
-            }
-            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
-                grad = 0;
-                templ1 = net.l0.head;                                           //vrstva se ktere scita gradienty
-                for (int j = 0; j < net.l0.length; j++) {
-                    grad += templ1.grad;					//sumarizuje gradient predhozi vrstvy
-                    templ1 = templ1.next;
-                }
-                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / net.l0.length;
-                if (grad == 0) {
-                    gradNull++;
-                }
-                double delta;
-                for (int k = 0; k < templ.weights2D.length; k++) {
-                    for (int q = 0; q < templ.weights2D[0].length; q++) {
-                        delta = net.speedL1CL * templ.grad * templ.avInput[k][q];
-                        templ.weights2D[k][q] += delta;
-                    }
-                    
-                }
-                templ = templ.next;
-            }
-            minusCounter++;
-            
-            //pro filtry 10 az 14
-            templ = net.convolutions.head;
-            while (templ.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter) ) {
-                templ = templ.next;
-            }
-            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
-                grad = 0;
-                Convolution templLast = net.convolutions.head;          //vrstva se ktere scita gradienty
-                while (templLast.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter+1) ) {
-                    templLast = templLast.next;
-                }
-                for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
-                    grad += templLast.grad;				//sumarizuje gradient predhozi vrstvy
-                    templLast = templLast.next;
-                }
-                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.prvniVrstva;
-                if (grad == 0) {
-                    gradNull++;
-                }
-                for (int k = 0; k < templ.weights2D.length; k++) {
-                    for (int q = 0; q < templ.weights2D[0].length; q++) {
-                        templ.weights2D[k][q] += net.speedL2CL * templ.grad * templ.avInput[k][q];
-                    }
-                }
-                templ = templ.next;
-            }
-            minusCounter++;
-            //pro filtry 5 az 9
-            templ = net.convolutions.head;
-            while (templ.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter) ) {
-                templ = templ.next;
-            }
-            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
-                grad = 0;
-                Convolution templLast = net.convolutions.head;          //vrstva se ktere scita gradienty
-               while (templLast.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter+1) ) {
-                    templLast = templLast.next;
-                }
-                for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
-                    grad += templLast.grad;				//sumarizuje gradient predhozi vrstvy
-                    templLast = templLast.next;
-                }
-                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.prvniVrstva;
-                if (grad == 0) {
-                    gradNull++;
-                }
-                for (int k = 0; k < templ.weights2D.length; k++) {
-                    for (int q = 0; q < templ.weights2D[0].length; q++) {
-                        templ.weights2D[k][q] += net.speedL2CL * templ.grad * templ.avInput[k][q];
-                    }
-                }
-                templ = templ.next;
-            }
-
-            //pro filtry 0 az 4
-            templ = net.convolutions.head;
-            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
-                grad = 0;
-                Convolution templLast = net.convolutions.head;		//vrstva se ktere scita gradienty
-                while (templLast.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups ) {
-                    templLast = templLast.next;
-                }
-                for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
-                    grad += templLast.grad;					//sumarizuje gradient predhozi vrstvy
-                    templLast = templLast.next;
-                }
-                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.druhaVrstva;
-                if (grad == 0) {
-                    gradNull++;
-                }
-                for (int k = 0; k < templ.weights3D.length; k++) {
-                    for (int q = 0; q < templ.weights3D[0].length; q++) {
-                        for(int z=0; z < templ.weights3D[0][0].length; z++) {
-                            templ.weights3D[k][q][z] += net.speedL3CL * templ.grad * templ.avInput[k][q];
+//        double lastError = -1;
+//        int epochaWithoutNewNeuron = 0;
+        while(true) {
+            for(int w=0; w<combi.length; w++) {
+                for(int i=0; i<combi[0].length; i++) {
+                    lokResult = calculateResult(ImgToRightPicture(imgNumber.get(combi[w][i]), true));
+                    switch (i) {
+                        case 0: {
+                            output0 = net.l2.outputs;
+                            break;
+                        }
+                        case 1: {
+                            output1 = net.l2.outputs;
+                            break;
+                        }
+                        case 2: {
+                            output2 = net.l2.outputs;
+                            break;
                         }
                     }
                 }
-                templ = templ.next;
-            }
-           
-            if (Answer != lokResult) {
-                lokError++;
-            }
-           
-            if (shakeFlag) {
-                net.speedL1CL /= 5;
-                net.speedL2CL /= 5;
-                net.speedL3CL /= 5;
-                net.speedLFCN /= 5;
-                shakeFlag = false;
-                System.out.println("Shake flag false");
-            }
-            
-            if (iteration % (learningSet*2) == 0) {
-                if ( (iteration / (learningSet*2) == 900) || (iteration / (learningSet*2)== 1800)){
-                    net.speedL1CL *= 0.75;
-                    net.speedL2CL *= 0.75;
-                    net.speedL3CL *= 0.75;
-                    net.speedLFCN *= 0.75;
+    //            lokResult = calculateResult(ImgToRightPicture(imgNumber.get(key), true));
+                Neuron templ3 = net.l2.head;
+                if((Double.isNaN(templ3.weights[1])||(Double.isNaN(net.l0.head.weights[1]))||(Double.isNaN(net.l1.head.weights[1])))) { //kontrola siti
+                    System.out.println("NAN NAN NAN iteration "+ iteration);   //kontrola neuronu
                 }
-                if(!testFlag) {
-                    lokError = lokError/(learningSet*2)*100;
-                    if(lastResult != lokError) {
-                        lastResult = lokError;
-                        changeIteration = iteration;
-                    }
-                    RealTimeChart.displayValueOnChart(lokError, false);
-                    if (lokError < errorMin) {
-                        writeNewTestResult(lokError);                    
-                        errorMin = lokError;
-                        System.out.println("");
-                        System.out.println("epoch: "+iteration / (learningSet*2)+"  >>>>>   Minimalni chyba: " +(int)errorMin+"%");
-                        sendReport("Min error", errorMin);
-                        serializace("Best weights");
-                        if(errorMin < 20)
-                            testFlag = true;
+    //            for (int i = 0; i < Neuronet.tretiVrstva; i++) {
+    //                if (Answer == i) {
+    //                    err[i] = Max - templ3.output;				//zapisuje signal chyby vystupni vrstvy
+    //                } else {
+    //                    err[i] = 0 - templ3.output;
+    //                }
+    //                templ3 = templ3.next;
+    //            }
+                double a,b;
+                for(int i=0;i<err.length; i++) {
+                    a = Math.abs(output0[i] - output1[i]);
+                    b = Math.abs(output0[i] - output2[i]);
+                    if(a>b) {
+                        err[i] = 1;
                     }
                     else {
-                        System.out.println("Error in "+iteration / (learningSet*2)+" epoch: "+(int)lokError+"%");
+                        err[i] = 0;
                     }
-                }else {
-                    testValue = test("normal");
-                    newEpoch();
-                    if(lastResult != testValue) {
-                        lastResult = testValue;
-                        changeIteration = iteration;
+                }
+                Neuron templ2;
+                templ3 = net.l2.head;
+                for (int i = 0; i < Neuronet.tretiVrstva; i++) {
+                    templ2 = net.l1.head;
+                    templ3.grad = 0.388 * (1.716 - templ3.output) * (1.716 + templ3.output) * err[i];//1.7159   //pocita gradient pro vystupni vyrstvu
+                    for (int j = 0; j < Neuronet.druhaVrstva; j++) {
+                        templ3.weights[j] += net.speedLFCN * templ2.output * templ3.grad;     //pocita vahy pro vystupni vrstvu
+                        templ2 = templ2.next;
                     }
-                    RealTimeChart.displayValueOnChart(testValue, true);
+                    templ3 = templ3.next;
+                }
+
+                double grad = 0;
+                Neuron templ1;
+                templ2 = net.l1.head;
+                for (int i = 0; i < Neuronet.druhaVrstva; i++) {
+                    grad = 0;
+                    templ3 = net.l2.head;
+                    for (int u = 0; u < Neuronet.tretiVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro druhou vrstvu)
+                        grad += templ3.grad * templ3.weights[i];
+                        templ3 = templ3.next;
+                    }
+                    templ2.grad = grad * 0.388 * (1.716 - templ2.output) * (1.716 + templ2.output);//1.7159
+                    templ1 = net.l0.head;
+                    for (int j = 0; j < Neuronet.prvniVrstva; j++) {
+                        templ2.weights[j] += net.speedLFCN * templ1.output * templ2.grad;
+                        templ1 = templ1.next;
+                    }
+                    templ2 = templ2.next;
+                }
+
+                templ1 = net.l0.head;
+                for (int i = 0; i < Neuronet.prvniVrstva; i++) {
+                    grad = 0;
+                    templ2 = net.l1.head;
+                    for (int u = 0; u < Neuronet.druhaVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro prvni vrstvu)
+                        grad += templ2.grad * templ2.weights[i];
+                        templ2 = templ2.next;
+                    }
+                    templ1.grad = grad * 0.388 * (1.716 - templ1.output) * (1.716 + templ1.output);//1.7159
+                    for (int j = 0; j < Neuronet.inputLength; j++) {
+                        templ1.weights[j] += net.speedLFCN * templ1.input[j] * grad;
+                    }
+                    templ1 = templ1.next;
+                }
+
+                //pro filtry 10 az 14
+                Convolution templ = net.convolutions.head;
+                while (templ.cisloFiltra != net.convolutions.size / 3 * 2 ) {
+                    templ = templ.next;
+                }
+                for (int i = 0; i < net.convolutions.size / 3; i++) {
+                    grad = 0;
+                    templ1 = net.l0.head;                                           //vrstva se ktere scita gradienty
+                    for (int j = 0; j < net.l0.length; j++) {
+                        grad += templ1.grad;					//sumarizuje gradient predhozi vrstvy
+                        templ1 = templ1.next;
+                    }
+                    templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / net.l0.length;
+                    double delta;
+                    for (int k = 0; k < templ.weights2D.length; k++) {
+                        for (int q = 0; q < templ.weights2D[0].length; q++) {
+                            delta = net.speedL1CL * templ.grad * templ.avInput[k][q];
+                            templ.weights2D[k][q] += delta;
+                        }
+
+                    }
+                    templ = templ.next;
+                }
+
+                //pro filtry 5 az 9
+                templ = net.convolutions.head;
+                while (templ.cisloFiltra != net.convolutions.size / 3 ) {
+                    templ = templ.next;
+                }
+                for (int i = 0; i < net.convolutions.size / 3; i++) {
+                    grad = 0;
+                    Convolution templLast = net.convolutions.head;          //vrstva se ktere scita gradienty
+                    while (templLast.cisloFiltra != net.convolutions.size / 3 * 2 ) {
+                        templLast = templLast.next;
+                    }
+                    for (int j = 0; j < net.convolutions.size / 3; j++) {
+                        grad += templLast.grad;				//sumarizuje gradient predhozi vrstvy
+                        templLast = templLast.next;
+                    }
+                    templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.prvniVrstva;
+                    for (int k = 0; k < templ.weights2D.length; k++) {
+                        for (int q = 0; q < templ.weights2D[0].length; q++) {
+                            templ.weights2D[k][q] += net.speedL2CL * templ.grad * templ.avInput[k][q];
+                        }
+                    }
+                    templ = templ.next;
+                }
+
+                //pro filtry 0 az 4
+                templ = net.convolutions.head;
+                for (int i = 0; i < net.convolutions.size / 3; i++) {
+                    grad = 0;
+                    Convolution templLast = net.convolutions.head;		//vrstva se ktere scita gradienty
+                    while (templLast.cisloFiltra != net.convolutions.size / 3 ) {
+                        templLast = templLast.next;
+                    }
+                    for (int j = 0; j < net.convolutions.size / 3; j++) {
+                        grad += templLast.grad;					//sumarizuje gradient predhozi vrstvy
+                        templLast = templLast.next;
+                    }
+                    templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.druhaVrstva;
+                    for (int k = 0; k < templ.weights3D.length; k++) {
+                        for (int q = 0; q < templ.weights3D[0].length; q++) {
+                            for(int z=0; z < templ.weights3D[0][0].length; z++) {
+                                templ.weights3D[k][q][z] += net.speedL3CL * templ.grad * templ.avInput[k][q];
+                            }
+                        }
+                    }
+                    templ = templ.next;
+                }
+
+                if (Answer != lokResult) {
+                    lokError++;
+                }
+
+                if (shakeFlag) {
+                    net.speedL1CL /= 5;
+                    net.speedL2CL /= 5;
+                    net.speedL3CL /= 5;
+                    net.speedLFCN /= 5;
+                    shakeFlag = false;
+                    System.out.println("Shake flag false");
+                }
+
+                if ((iteration % peopleInSet) == 0) {
+//                    lokError = lokError/peopleInSet*100;
+//                    if (lokError < errorMin) {
+//                        errorMin = lokError;
+//                        System.out.println("");
+//                        System.out.println("epoch: "+iteration / (learningSet*2)+"  >>>>>   Minimalni chyba: " +(int)errorMin+"%");
+//                        serializace("Best weights");
+//                    }
+//                    else {
+//                        System.out.println("Error in "+iteration / (learningSet*2)+" epoch: "+(int)lokError+"%");
+//                    }
+                    testValue = test();
                     if (testValue > bestTestValue) {
                         bestTestValue = testValue;
                         System.out.println("");
                         System.out.println("Better result >>>>>>>>>>>  "+bestTestValue);
                         System.out.println("");
                         serializace("Best weights");
-                        sendReport("New best value", testValue);
+//                        sendReport("New best value", testValue);
                     }
-                    
-                    if(testValue > 96)
-                        isEndOfLearning = true;
-                    System.out.println(iteration / (learningSet*2)+" epoch: "+testValue);
-                }
-               
+                    writeProgressInfo(iteration, testValue);
 
-                if ((iteration - changeIteration)/(learningSet*2) > 20) {
-                     net.speedL1CL *= 5;
-                     net.speedL2CL *= 5;
-                     net.speedL3CL *= 5;
-                     net.speedLFCN *= 5;
-                     shakeFlag = true;
-                     System.out.println("Shake flag true");
-                 } 
-                
-//                writeProgressInfo(iteration, testValue);
-                
-//                if (epochaWithoutNewNeuron>=50) {
-//                    System.out.println("epochaWithoutNewNeuron "+ epochaWithoutNewNeuron);
-//                    System.out.println("Error difference " + (lastError-lokError/iteration*100));
-//                    if (Math.abs(lastError-lokError/iteration*100) < 1) {	
-//                        epochaWithoutNewNeuron=0;
-//                        addNeuron();
-//                        writeSrtuct();
-//                    }
-//                }
-//                else 
-//                    epochaWithoutNewNeuron++;
-                
-                if (iteration % 1000000 == 0) {
-                    _convolutionsInfo = null;
+    //                if (epochaWithoutNewNeuron>=50) {
+    //                    System.out.println("epochaWithoutNewNeuron "+ epochaWithoutNewNeuron);
+    //                    System.out.println("Error difference " + (lastError-lokError/iteration*100));
+    //                    if (Math.abs(lastError-lokError/iteration*100) < 1) {	
+    //                        epochaWithoutNewNeuron=0;
+    //                        addNeuron();
+    //                        writeSrtuct();
+    //                    }
+    //                }
+    //                else 
+    //                    epochaWithoutNewNeuron++;
+
+                    if (iteration % 1000000 == 0) {
+                        _convolutionsInfo = null;
+                    }
+                    if (iteration % 1000000 == 0) {
+                        progressInfo = null;
+                    }
+                    lokError = 0;
                 }
-                if (iteration % 1000000 == 0) {
-                    progressInfo = null;
-                }
-                gradNull = 0;
-                newEpoch();
-                lokError = 0;
+                lastError = (int) (lokError / iteration * 100);
+                iteration++;
+                shuffleDataSets();
             }
-            lastError = lokError / iteration * 100;
-            iteration++;
+        
         }
-        serializace("weights");
-        sendReport("End of learning", testValue);
+       
     }
     
     static Boolean addNeuron(){
@@ -918,19 +695,16 @@ public class NNAutoencoders implements Serializable {
         }
     }
 
-    static double[] doOneArray(Picture[] inputArray) {
-        int length = inputArray.length * inputArray[0].map2D.length;
-        int kEnd = 1;
-//        if(inputArray[0].map2D[1] != null)
-        try {    
-            length *= inputArray[0].map2D[1].length;
-        } catch(Exception e) {}
+    static double[] doOneArray(double[][][] thirdConvolution) {
+        int length = thirdConvolution.length * thirdConvolution[0].length;
+        if(thirdConvolution[0][0] != null)
+            length *= thirdConvolution[0][0].length;
         double[] result = new double[length];
         int counter = 0;
-        for (int i = 0; i < inputArray.length; i++) {
-            for (int j = 0; j < inputArray[i].map2D.length; j++) {
-                for (int k = 0; k < kEnd; k++) {
-                    result[counter] = inputArray[i].map2D[j][k];
+        for (int i = 0; i < thirdConvolution.length; i++) {
+            for (int j = 0; j < thirdConvolution[i].length; j++) {
+                for (int k = 0; k < thirdConvolution[i][j].length; k++) {
+                    result[counter] = thirdConvolution[i][j][k];
                     counter++;
                 }
             }
@@ -956,17 +730,6 @@ public class NNAutoencoders implements Serializable {
         } catch (IOException e) {
         }
         writeConvolution(picture, typeOfTransformation);
-    }
-    
-    static void writeNewTestResult(double ErrorMin) throws Exception {
-        String testResult = "With:";
-        testResult += checkOneClass("With");
-        testResult+="\r\n";
-        testResult+="Without:";
-        testResult+="\r\n";
-        testResult += checkOneClass("Without");
-        write("Analyz/error"+ErrorMin, testResult);
-        serializace("Analyz/Weights/error"+ErrorMin);
     }
 
     static void writeProgressInfo(int iteration, double testValue) {
@@ -1029,191 +792,47 @@ public class NNAutoencoders implements Serializable {
 
     }
 
-    static int test(String mode) throws Exception {  //normal - pro bezny studium(na learning sete), test-pro zkouseni na test sete
-        newEpoch();
+    static int test() throws Exception {  
         int vysledek=0;
-        boolean isDifferentOutput = false;		//rika jestli NN vydava ruzne hodnoty
-//        int firstOutput = calculateResult(getPicture(true, mode));
+        double[] output0 = new double[Neuronet.tretiVrstva];
+        double[] output1 = new double[Neuronet.tretiVrstva];
+        double[] output2 = new double[Neuronet.tretiVrstva];
         int vysOperace = -2;
         int limit = (int)(learningSet * 2); //pocet testovych iteraci pro (learning set)
-        if(mode=="test") {
-            limit = testSet;
-        }
-        for (int i=0; i<limit; i++) {
-            vysOperace = calculateResult(getPicture(true, mode));
-            if (Answer == vysOperace) 
-                vysledek += 1;
-            else
-                vysledek += 0;
-//            if (firstOutput != vysOperace) 
-//                isDifferentOutput = true;
-        }
-//        if(!isDifferentOutput){
-//            stillOneValue = vysOperace;
-//        }
-//        else {
-//            stillOneValue = -1;
-//        }
-        double k = 1;
-//        if ("test".equals(mode))
-//            k = k/limit*100;
-//        else {
-         k= k/limit*100;
-//        }
-        return (int)(vysledek*k);
-    }
-    
-    static void exam() throws Exception {
-            LinkedList<Integer> pointList = new LinkedList<>();
-//            deserializationNN();
-            BufferedImage inputImage = ImageIO.read(new File("Data set/Exam set/segmentation on video-frame-202 with DoG 43.jpg"));
-            BufferedImage result = inputImage;
-            BufferedImage templ;
-            boolean isHere = false; //rekne nam, jestli na malem obrazku je srnka
-            int size = Neuronet.inputPictureFormat;  //velikost receptivniho pole
-            for(int i=0; i<inputImage.getHeight()-size; i+=17) { //y demenze (i<inputImage.Height-size)
-                for(int j=0; j<inputImage.getWidth()-size;  j+=17) { // x demenze (j<inputImage.Width-size)
-                    try {
-                        templ = cutImage(j,i, size, inputImage);
-                        if(isNeedsToProcessing(templ))
-                            isHere = findRoeDeer(templ);
-                        else 
-                            isHere = false;
-                    }catch(Exception e){}
-                    if (isHere) {
-                        pointList.addLast(j);   //pridani souradnice X
-                        pointList.addLast(i);   //pridani souradnice Y
+        for(int w=0; w<combi.length; w++) {
+            for(int i=0; i<combi[0].length; i++) {
+                calculateResult(ImgToRightPicture(imgNumber.get(combi[w][i]), true));
+                switch (i) {
+                    case 0: {
+                        output0 = net.l2.outputs;
+                        break;
+                    }
+                    case 1: {
+                        output1 = net.l2.outputs;
+                        break;
+                    }
+                    case 2: {
+                        output2 = net.l2.outputs;
+                        break;
                     }
                 }
-                System.out.println("i: "+i);
             }
-            int counter = 0;
-            int x,y;
-            if(pointList.isEmpty()){
-                throw new Exception("Nenalezen zadny jelen");
+       }
+        double a,b;
+        int counterRight = 0;
+        int counteWrong = 0;
+        for(int i=0;i<Neuronet.tretiVrstva; i++) {
+            a = Math.abs(output0[i] - output1[i]);
+            b = Math.abs(output0[i] - output2[i]);
+            if(a>b) {
+                counterRight++;
             }
-            int templPoint = pointList.getFirst();
-            while(counter<pointList.size()) {
-                x = pointList.get(counter);
-                y = pointList.get(counter+1);
-//                saveToDatasetAsRecognized(x, y, size, result, counter);
-                result = drawRectungle(x, y, size, result);
-                counter += 2;
+            else {
+                counteWrong++;
             }
-            ImageIO.write(result,"jpg", new File("result 1.jpg"));
         }
-    
-    static void exam2() throws Exception {
-        int counterAreasToProcess = 0;
-        LinkedList<Integer> pointList = new LinkedList<>();
-        Segmentation segment = new Segmentation();
-        BufferedImage inputImage = ImageIO.read(new File("Data set/Exam set/segmentation on video-frame-5(with roe-deer).jpg"));
-        BufferedImage result = inputImage;
-        inputImage = segment.segmentPicture(inputImage);
-        ImageIO.write(inputImage,"jpg", new File("segmented picture.jpg"));
-        BufferedImage templ;
-        boolean isHere = false; //rekne nam, jestli na malem obrazku je srnka
-        int size = Neuronet.inputPictureFormat;  //velikost receptivniho pole
-        for(int i=0; i<inputImage.getHeight()-size; i+=17) { //y demenze (i<inputImage.Height-size)
-            for(int j=0; j<inputImage.getWidth()-size;  j+=17) { // x demenze (j<inputImage.Width-size)
-                try {
-                    templ = cutImage(j,i, size, inputImage);
-                    if(isNeedsToProcessing(templ)){
-                        counterAreasToProcess++;
-                        templ = cutImage(j, j, size, result);
-                        isHere = findRoeDeer(templ);
-                    }
-                    else 
-                        isHere = false;
-                }catch(Exception e){}
-                if (isHere) {
-                    pointList.addLast(j);   //pridani souradnice X
-                    pointList.addLast(i);   //pridani souradnice Y
-                }
-            }
-            System.out.println("i: "+i);
-        }
-        int counter = 0;
-        int x,y;
-        if(pointList.isEmpty()){
-            throw new Exception("Nenalezen zadny jelen");
-        }
-        int templPoint = pointList.getFirst();
-        savePositivePicture(pointList,result, size);
-        while(counter<pointList.size()) {
-            x = pointList.get(counter);
-            y = pointList.get(counter+1);
-//            saveToDatasetAsRecognized(x, y, size, result, counter);
-            result = drawRectungle(x, y, size, result);
-            counter += 2;
-        }
-        ImageIO.write(result,"jpg", new File("result 1.jpg"));
-        System.out.println("Process zone: "+counterAreasToProcess);
-    }
-    
-    static void savePositivePicture(LinkedList<Integer> pointList, BufferedImage image, int size) throws Exception {
-        int x,y,counter = 0;
-        while(counter<pointList.size()) {
-            x = pointList.get(counter);
-            y = pointList.get(counter+1);
-            saveToDatasetAsRecognized(x, y, size, image, counter);
-            counter += 2;
-        }
-    }
-    
-    static void checkOnePicture() throws IOException, Exception {
-        String path = "Data set/Learning set/Without roe-deer/134.jpg";
-        BufferedImage inputImage = ImageIO.read(new File(path));
-        boolean tracker;
-        tracker = findRoeDeer(inputImage);
-        tracker = tracker;
-    }
-    
-    static String checkOneClass(String classWay) throws IOException, Exception {
-        int tryNumber = -1;
-        boolean nextPicture = false;
-        String output = null;
-        for(int i=0; i<learningSet; i++) {
-            while(!nextPicture) {
-                tryNumber++;
-                try{
-                    String path = "Data set/Learning set/"+classWay+" roe-deer/"+tryNumber+".jpg";
-                    BufferedImage inputImage = ImageIO.read(new File(path));
-                    nextPicture = true;
-                    if(classWay == "With") {
-                        if(findRoeDeer(inputImage)){
-//                            System.out.println(tryNumber+" ok");
-                            output+=(tryNumber+" ok");
-                            output +="\r\n";
-                        }
-                        else {
-//                            System.out.println(tryNumber+" wrong");
-                            output+=(tryNumber+" wrong");
-                            output +="\r\n";
-                        }
-                    } else {
-                        if(findRoeDeer(inputImage)){
-//                            System.out.println(tryNumber+" wrong");
-                            output+=(tryNumber+" wrong");
-                            output +="\r\n";
-                        }
-                        else {
-//                            System.out.println(tryNumber+" ok");
-                            output+=(tryNumber+" ok");
-                            output +="\r\n";
-                        }
-                    }
-                }
-                catch (Exception e) {}
-            }
-            nextPicture = false;
-        }
-        return output;
-    }
-    
-    static void saveToDatasetAsRecognized(int x, int y, int size, BufferedImage result, int counter) throws Exception {
-        BufferedImage templ = cutImage(x, y, size, result);
-        ImageIO.write(templ,"jpg", new File("Test positive/"+counter+".jpg"));
+        System.out.println("Right: "+counterRight+" / wrong: "+counteWrong);
+        return (int)(100);
     }
     
     static BufferedImage drawRectungle(int x, int y, int size, BufferedImage result) {
@@ -1227,116 +846,26 @@ public class NNAutoencoders implements Serializable {
         }
         return result;
     } 
-    
-    static boolean isNeedsToProcessing(BufferedImage input) {
-        boolean isWhite = true;
-//        HashMap<Integer,Integer> histogram = new HashMap<>();
-        Color white = new Color(255, 255, 255);
-        int rgbWhite = white.getRGB();
-        int rgb,r,g,b, h=0;
-        float [] hsb;
-        for(int i=0; i<input.getHeight(); i++) {
-            for(int j=0; j<input.getWidth(); j++) {
-                if(input.getRGB(j, i) != rgbWhite){
-                    isWhite = false;
-                    break;
-                }
-            }
-            if(!isWhite)
-                break;
-        }
-        if(isWhite)
-            return false;
-        int counterRedPixels = 0;
-//        int value;
-        for(int i=0; i<input.getHeight(); i++) {
-            for(int j=0; j<input.getWidth(); j++) {
-                rgb = input.getRGB(j, i);
-                r = (rgb >> 16) & 0xFF;
-                g = (rgb >> 8) & 0xFF;
-                b = (rgb >> 0) & 0xFF;
-                hsb = Color.RGBtoHSB(r, g, b, null);
-                hsb[0] *= 100;
-                h = Math.round(hsb[0]);//hue
-//                if(!histogram.containsKey(h)){
-//                    histogram.put(h, 1);
-//                }
-//                else {
-//                   value = histogram.get(h);
-//                   histogram.put(h, value+1);
-//                }
-                if(h==5){
-                    h=h;
-                }
-                if((h > 83)||(h < 9)) {
-                   counterRedPixels++; 
-                }
-            }
-        }
-//        System.out.println("h - v");
-//        for(int i=0; i<histogram.size(); i++) {
-//            if(histogram.containsKey(i))
-//                System.out.println(i+" - "+histogram.get(i));
-//        }
-        if(counterRedPixels>21) 
-            return true;
-        else 
-            return false;
-    }
-
-    static BufferedImage cutImage(int x, int y, int size, BufferedImage inputPicture) throws Exception {
-        BufferedImage outputPicture;
-        outputPicture = new BufferedImage(size, size, 5);
-//        int x1 = x; //pro pocitani souradnic puvodnich pixelu
-//        int y1 = y;
-        try {
-            for (int i = y; i < y+size; i++) {
-                for (int j = x; j < x+size; j++) {
-//                    int extract = inputPicture.getRGB(x1, y1);
-//                    Color pixel = new Color(inputPicture.getRGB(x1, y1));
-//                    outputPicture.SetPixel(j, i, pixel);
-                    outputPicture.setRGB(j-x, i-y, inputPicture.getRGB(j, i));
-//                    x1++;
-                }
-//                x1 = x;
-//                y1++;
-            }
-            return outputPicture;
-        }catch (Exception e) {
-            throw new Exception("Nepovedlo vzit maly obrazek");
-        }
-//        return new BufferedImage(size, size, 6);
-    }
         
-    static boolean findRoeDeer(BufferedImage input) throws Exception {
-        Picture inputPicture = ImgToRightPicture(input, true);
-        int result = calculateResult(inputPicture);
-        if(result == 0) 
-            return true;
-        else 
-            return false;
-    }
-    
     static void serializace(String wayOfSaving) throws Exception {
-//        String fileName = null;
-//        if (wayOfSaving == "normal") {
-//            fileName = "weights";
-//        } else {
-//            fileName = "BestWeights";;
-//        }
-        FileOutputStream fos = new FileOutputStream(wayOfSaving+".out");
+        String fileName = null;
+        if (wayOfSaving == "normal") {
+            fileName = "weights";
+        } else {
+            fileName = "BestWeights";;
+        }
+        FileOutputStream fos = new FileOutputStream(fileName+".out");
         ObjectOutputStream oos = new ObjectOutputStream(fos);
         oos.writeObject(net);
         oos.close();
     }
 
-    static Neuronet deserializationNN(String way) throws Exception {//deserializuje NN z dat-faila
-        net = deseralizace(way);
+    static void deserializationNN() throws Exception {//deserializuje NN z dat-faila
+        net = deseralizace("weights");
         Neuronet.inputLength = net.inputLengthOwn;
         Neuronet.prvniVrstva = net.prvniVrstvaOwn;
         Neuronet.druhaVrstva = net.druhaVrstvaOwn;
         Neuronet.tretiVrstva = net.tretiVrstvaOwn;
-        return net;
     }
     
     static Neuronet deseralizace(String way) throws Exception {
@@ -1347,7 +876,7 @@ public class NNAutoencoders implements Serializable {
             net = (Neuronet) in.readObject();
             return net;
         } catch (Exception e) {
-            throw new Exception("Nepovedlo deserializovat NN");
+            return new Neuronet();
         }
     }
 
@@ -1379,8 +908,8 @@ public class NNAutoencoders implements Serializable {
         return result;
     }
 
-    static void write(String fileName, String text) {
-        File file = new File(fileName+".txt");
+    public static void write(String fileName, String text) {
+        File file = new File(fileName);
         try {
             if (!file.exists()) {
                 file.createNewFile();
@@ -1395,8 +924,4 @@ public class NNAutoencoders implements Serializable {
         } catch (IOException e) {}
     }
     
-    static void clearScreen() {  
-        System.out.print("\033[H\033[2J");  
-        System.out.flush();  
-   }  
 }
