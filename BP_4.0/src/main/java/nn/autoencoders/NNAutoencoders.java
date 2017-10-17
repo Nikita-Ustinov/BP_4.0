@@ -40,6 +40,8 @@ public class NNAutoencoders implements Serializable {
         createFirstDataSet();
 //        net = deseralizace("BestWeights");
         net = new Neuronet();
+//        net.serialization();
+//        net.deserialization();
         study();
     }
     
@@ -170,40 +172,54 @@ public class NNAutoencoders implements Serializable {
             templ.clearOutput();
             templ = templ.next;
         }
-        Picture[] firstConvolution = new Picture[net.convolutions.size / 3];		//РјР°СЃСЃРёРІ РјР°СЃСЃРёРІРѕРІ?? [][,]		//prvni vrstva, convolution 11x11
-        for (int i = 0; i < net.convolutions.size / 3; i++) {
-            firstConvolution[i] = new Picture(applyConvolution(i, picture));			//prvni konvoluce
+        Picture[] firstConvolution = new Picture[net.convolutions.size / Neuronet.counvolutionGroups];		//Ð Ñ˜Ð Â°Ð¡ÐƒÐ¡ÐƒÐ Ñ‘Ð Ð† Ð Ñ˜Ð Â°Ð¡ÐƒÐ¡ÐƒÐ Ñ‘Ð Ð†Ð Ñ•Ð Ð†?? [][,]		//prvni vrstva, convolution 11x11
+        for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+            firstConvolution[i] = new Picture(applyConvolution(i, picture));            //prvni konvoluce
             firstConvolution[i].map2D = function(firstConvolution[i].map2D, "Tanh");	// prvni funkce aktivace (Tanh)
             firstConvolution[i].map2D = pooling(2, firstConvolution[i].map2D);		//prvni pooling
         }
-        Picture[] secondConvolution = new Picture[(int)Math.pow(net.convolutions.size/3, 2)];
-        int cisloFiltra = net.convolutions.size / 3 ;
+        Picture[] secondConvolution = new Picture[(int)Math.pow(net.convolutions.size/Neuronet.counvolutionGroups, 2)];
+        int cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups ;
         int cisloPolozky = 0;
-        for (int j = 0; j < net.convolutions.size / 3; j++) {
-            for (int i = 0; i < net.convolutions.size / 3; i++) {
+        for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
+            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
                 secondConvolution[cisloPolozky] = new Picture(applyConvolution(cisloFiltra, firstConvolution[j]));
                 secondConvolution[cisloPolozky].map2D = function(secondConvolution[cisloPolozky].map2D, "Tanh");
                 secondConvolution[cisloPolozky].map2D = pooling(2, secondConvolution[cisloPolozky].map2D);
                 cisloFiltra++;
                 cisloPolozky++;
             }
-            cisloFiltra = net.convolutions.size / 3;
+            cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups;
         }
-        double[][][] thirdConvolution = new double[(int)Math.pow(net.convolutions.size / 3, 3)][][];
-        cisloFiltra = net.convolutions.size / 3 * 2;
+        Picture[] thirdConvolution = new Picture[(int)Math.pow(net.convolutions.size / Neuronet.counvolutionGroups, 3)] ;
+        cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 2;
         cisloPolozky = 0;
-        for (int j = 0; j < Math.pow(net.convolutions.size / 3, 2); j++) {
-            for (int i = 0; i < net.convolutions.size / 3; i++) {
-                thirdConvolution[cisloPolozky] = applyConvolution(cisloFiltra, secondConvolution[j]);
-//                thirdConvolution[cisloPolozky] = addY(thirdConvolution[cisloPolozky]);
-                thirdConvolution[cisloPolozky] = function(thirdConvolution[cisloPolozky], "Tanh");
-                thirdConvolution[cisloPolozky] = pooling(2, thirdConvolution[cisloPolozky]);
+        for (int j = 0; j < Math.pow(net.convolutions.size / Neuronet.counvolutionGroups, 2); j++) {
+            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+                thirdConvolution[cisloPolozky] = new Picture(applyConvolution(cisloFiltra, secondConvolution[j]));
+                thirdConvolution[cisloPolozky].map2D = function(thirdConvolution[cisloPolozky].map2D, "Tanh");
+                thirdConvolution[cisloPolozky].map2D = pooling(2, thirdConvolution[cisloPolozky].map2D);
                 cisloFiltra++;
                 cisloPolozky++;
             }
-            cisloFiltra = net.convolutions.size / 3 * 2;
+            cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 2;
         }
-        double[] inputFullyConnectionNet = doOneArray(thirdConvolution);
+        
+        Picture[] fourthConvolution = new Picture[(int)Math.pow(net.convolutions.size / Neuronet.counvolutionGroups, 4)];
+        cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 3;
+        cisloPolozky = 0;
+        for (int j = 0; j < thirdConvolution.length; j++) {
+            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+                fourthConvolution[cisloPolozky] = new Picture(applyConvolution(cisloFiltra, thirdConvolution[j]));
+                fourthConvolution[cisloPolozky].map2D = function(fourthConvolution[cisloPolozky].map2D, "Tanh");
+//                fourthConvolution[cisloPolozky].map2D = pooling(2, fourthConvolution[cisloPolozky].map2D);
+                cisloFiltra++;
+                cisloPolozky++;
+            }
+            cisloFiltra = net.convolutions.size / Neuronet.counvolutionGroups * 3;
+        }
+        
+        double[] inputFullyConnectionNet = doOneArray(fourthConvolution);
         net.l0.writeInput(inputFullyConnectionNet);				//zapisuje vstupni vektor v "fully connected" neuronovou sit
         net.l0.countOutputs();
         Neuron templ1 = net.l1.head;
@@ -240,10 +256,16 @@ public class NNAutoencoders implements Serializable {
         return index;
     }
 
-    static double[][] function(double[][] picture, String nazevFunkce) {
+
+   static double[][] function(double[][] picture, String nazevFunkce) {
         double[][] result = picture;
+        int jEnd = 1;
+        try{
+            jEnd = picture[1].length;
+        } catch(Exception e) {}
+        
         for (int i = 0; i < picture.length; i++) {
-            for (int j = 0; j < picture[1].length; j++) {
+            for (int j = 0; j < jEnd; j++) {
                 if (nazevFunkce == "Tanh") {
                     result[i][j] = 1.7159 * Math.tanh(0.66 * picture[i][j]);
                 } else if (nazevFunkce == "ReLu") {
@@ -258,6 +280,7 @@ public class NNAutoencoders implements Serializable {
         }
         return result;
     }
+
     
     static void study() throws Exception {
 //        sendReport("Start learning", 0);
@@ -304,6 +327,7 @@ public class NNAutoencoders implements Serializable {
         double[] output1 = new double[Neuronet.tretiVrstva];
         double[] output2 = new double[Neuronet.tretiVrstva];
         int iteration = 1;
+        int gradNull = 0;
         double lokError = 0;
         int lokResult = 0;
         int lastError;
@@ -352,129 +376,185 @@ public class NNAutoencoders implements Serializable {
                 for(int i=0;i<err.length; i++) {
                     a = Math.abs(output0[i] - output1[i]);
                     b = Math.abs(output0[i] - output2[i]);
-                    if(a>b) {
+                    if(a>=b) {
                         err[i] = 1;
                     }
                     else {
                         err[i] = 0;
                     }
                 }
-                Neuron templ2;
+                 Neuron templ2;
+            templ3 = net.l2.head;
+            double delta = 0;
+            int deltaCounter = 0;
+            for (int i = 0; i < Neuronet.tretiVrstva; i++) {
+                templ2 = net.l1.head;
+                templ3.grad = 0.388 * (1.716 - templ3.output) * (1.716 + templ3.output) * err[i];//1.7159   //pocita gradient pro vystupni vyrstvu
+                for (int j = 0; j < Neuronet.druhaVrstva; j++) {
+                    delta = net.speedLFCN * templ2.output * templ3.grad;
+                    templ3.weights[j] += net.speedLFCN * templ2.output * templ3.grad;     //pocita vahy pro vystupni vrstvu
+                    templ2 = templ2.next;
+                    deltaCounter++;
+                }
+                templ3 = templ3.next;
+            }
+            delta = delta/deltaCounter;
+                System.out.println("Average change weights on l2: "+delta);
+
+            double grad = 0;
+            Neuron templ1;
+            templ2 = net.l1.head;
+            delta = 0;
+            deltaCounter=0;
+            for (int i = 0; i < Neuronet.druhaVrstva; i++) {
+                grad = 0;
                 templ3 = net.l2.head;
-                for (int i = 0; i < Neuronet.tretiVrstva; i++) {
-                    templ2 = net.l1.head;
-                    templ3.grad = 0.388 * (1.716 - templ3.output) * (1.716 + templ3.output) * err[i];//1.7159   //pocita gradient pro vystupni vyrstvu
-                    for (int j = 0; j < Neuronet.druhaVrstva; j++) {
-                        templ3.weights[j] += net.speedLFCN * templ2.output * templ3.grad;     //pocita vahy pro vystupni vrstvu
-                        templ2 = templ2.next;
-                    }
+                for (int u = 0; u < Neuronet.tretiVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro druhou vrstvu)
+                    grad += templ3.grad * templ3.weights[i];
                     templ3 = templ3.next;
                 }
-
-                double grad = 0;
-                Neuron templ1;
+                templ2.grad = grad * 0.388 * (1.716 - templ2.output) * (1.716 + templ2.output);//1.7159
+                templ1 = net.l0.head;
+                for (int j = 0; j < Neuronet.prvniVrstva; j++) {
+                    delta = net.speedLFCN * templ1.output * templ2.grad;
+                    templ2.weights[j] += net.speedLFCN * templ1.output * templ2.grad;
+                    templ1 = templ1.next;
+                    deltaCounter++;
+                }
+                templ2 = templ2.next;
+            }
+            delta = delta/deltaCounter;
+            System.out.println("Average change weights on l1: "+delta);
+            delta = 0;
+            deltaCounter = 0;
+            templ1 = net.l0.head;
+            for (int i = 0; i < Neuronet.prvniVrstva; i++) {
+                grad = 0;
                 templ2 = net.l1.head;
-                for (int i = 0; i < Neuronet.druhaVrstva; i++) {
-                    grad = 0;
-                    templ3 = net.l2.head;
-                    for (int u = 0; u < Neuronet.tretiVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro druhou vrstvu)
-                        grad += templ3.grad * templ3.weights[i];
-                        templ3 = templ3.next;
-                    }
-                    templ2.grad = grad * 0.388 * (1.716 - templ2.output) * (1.716 + templ2.output);//1.7159
-                    templ1 = net.l0.head;
-                    for (int j = 0; j < Neuronet.prvniVrstva; j++) {
-                        templ2.weights[j] += net.speedLFCN * templ1.output * templ2.grad;
-                        templ1 = templ1.next;
-                    }
+                for (int u = 0; u < Neuronet.druhaVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro prvni vrstvu)
+                    grad += templ2.grad * templ2.weights[i];
                     templ2 = templ2.next;
                 }
-
-                templ1 = net.l0.head;
-                for (int i = 0; i < Neuronet.prvniVrstva; i++) {
-                    grad = 0;
-                    templ2 = net.l1.head;
-                    for (int u = 0; u < Neuronet.druhaVrstva; u++) {		//sumarizuje gradient predhozi vrstvy (delta pravidlo pro prvni vrstvu)
-                        grad += templ2.grad * templ2.weights[i];
-                        templ2 = templ2.next;
-                    }
-                    templ1.grad = grad * 0.388 * (1.716 - templ1.output) * (1.716 + templ1.output);//1.7159
-                    for (int j = 0; j < Neuronet.inputLength; j++) {
-                        templ1.weights[j] += net.speedLFCN * templ1.input[j] * grad;
-                    }
+                templ1.grad = grad * 0.388 * (1.716 - templ1.output) * (1.716 + templ1.output);//1.7159
+                for (int j = 0; j < Neuronet.inputLength; j++) {
+                    delta = net.speedLFCN * templ1.input[j] * grad;
+                    templ1.weights[j] += net.speedLFCN * templ1.input[j] * grad;
+                    deltaCounter++;
+                }
+                templ1 = templ1.next;
+            }
+            
+            delta = delta/deltaCounter;
+            System.out.println("Average change weights on l0: "+delta);
+            
+            //pro filtry 15 az 19
+            int minusCounter = 1;
+            Convolution templ = net.convolutions.head;
+            while (templ.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter) ) {
+                templ = templ.next;
+            }
+            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+                grad = 0;
+                templ1 = net.l0.head;                                           //vrstva se ktere scita gradienty
+                for (int j = 0; j < net.l0.length; j++) {
+                    grad += templ1.grad;					//sumarizuje gradient predhozi vrstvy
                     templ1 = templ1.next;
                 }
-
-                //pro filtry 10 az 14
-                Convolution templ = net.convolutions.head;
-                while (templ.cisloFiltra != net.convolutions.size / 3 * 2 ) {
-                    templ = templ.next;
+                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / net.l0.length;
+                if (grad == 0) {
+                    gradNull++;
                 }
-                for (int i = 0; i < net.convolutions.size / 3; i++) {
-                    grad = 0;
-                    templ1 = net.l0.head;                                           //vrstva se ktere scita gradienty
-                    for (int j = 0; j < net.l0.length; j++) {
-                        grad += templ1.grad;					//sumarizuje gradient predhozi vrstvy
-                        templ1 = templ1.next;
+                delta = 0;
+                for (int k = 0; k < templ.weights2D.length; k++) {
+                    for (int q = 0; q < templ.weights2D[0].length; q++) {
+                        delta = net.speedL1CL * templ.grad * templ.avInput[k][q];
+                        templ.weights2D[k][q] += delta;
                     }
-                    templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / net.l0.length;
-                    double delta;
-                    for (int k = 0; k < templ.weights2D.length; k++) {
-                        for (int q = 0; q < templ.weights2D[0].length; q++) {
-                            delta = net.speedL1CL * templ.grad * templ.avInput[k][q];
-                            templ.weights2D[k][q] += delta;
+                    
+                }
+                templ = templ.next;
+            }
+            minusCounter++;
+            
+            //pro filtry 10 az 14
+            templ = net.convolutions.head;
+            while (templ.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter) ) {
+                templ = templ.next;
+            }
+            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+                grad = 0;
+                Convolution templLast = net.convolutions.head;          //vrstva se ktere scita gradienty
+                while (templLast.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter+1) ) {
+                    templLast = templLast.next;
+                }
+                for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
+                    grad += templLast.grad;				//sumarizuje gradient predhozi vrstvy
+                    templLast = templLast.next;
+                }
+                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.prvniVrstva;
+                if (grad == 0) {
+                    gradNull++;
+                }
+                for (int k = 0; k < templ.weights2D.length; k++) {
+                    for (int q = 0; q < templ.weights2D[0].length; q++) {
+                        templ.weights2D[k][q] += net.speedL2CL * templ.grad * templ.avInput[k][q];
+                    }
+                }
+                templ = templ.next;
+            }
+            minusCounter++;
+            //pro filtry 5 az 9
+            templ = net.convolutions.head;
+            while (templ.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter) ) {
+                templ = templ.next;
+            }
+            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+                grad = 0;
+                Convolution templLast = net.convolutions.head;          //vrstva se ktere scita gradienty
+               while (templLast.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups * (Neuronet.counvolutionGroups-minusCounter+1) ) {
+                    templLast = templLast.next;
+                }
+                for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
+                    grad += templLast.grad;				//sumarizuje gradient predhozi vrstvy
+                    templLast = templLast.next;
+                }
+                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.prvniVrstva;
+                if (grad == 0) {
+                    gradNull++;
+                }
+                for (int k = 0; k < templ.weights2D.length; k++) {
+                    for (int q = 0; q < templ.weights2D[0].length; q++) {
+                        templ.weights2D[k][q] += net.speedL2CL * templ.grad * templ.avInput[k][q];
+                    }
+                }
+                templ = templ.next;
+            }
+
+            //pro filtry 0 az 4
+            templ = net.convolutions.head;
+            for (int i = 0; i < net.convolutions.size / Neuronet.counvolutionGroups; i++) {
+                grad = 0;
+                Convolution templLast = net.convolutions.head;		//vrstva se ktere scita gradienty
+                while (templLast.cisloFiltra != net.convolutions.size / Neuronet.counvolutionGroups ) {
+                    templLast = templLast.next;
+                }
+                for (int j = 0; j < net.convolutions.size / Neuronet.counvolutionGroups; j++) {
+                    grad += templLast.grad;					//sumarizuje gradient predhozi vrstvy
+                    templLast = templLast.next;
+                }
+                templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.druhaVrstva;
+                if (grad == 0) {
+                    gradNull++;
+                }
+                for (int k = 0; k < templ.weights3D.length; k++) {
+                    for (int q = 0; q < templ.weights3D[0].length; q++) {
+                        for(int z=0; z < templ.weights3D[0][0].length; z++) {
+                            templ.weights3D[k][q][z] += net.speedL3CL * templ.grad * templ.avInput[k][q];
                         }
-
                     }
-                    templ = templ.next;
                 }
-
-                //pro filtry 5 az 9
-                templ = net.convolutions.head;
-                while (templ.cisloFiltra != net.convolutions.size / 3 ) {
-                    templ = templ.next;
-                }
-                for (int i = 0; i < net.convolutions.size / 3; i++) {
-                    grad = 0;
-                    Convolution templLast = net.convolutions.head;          //vrstva se ktere scita gradienty
-                    while (templLast.cisloFiltra != net.convolutions.size / 3 * 2 ) {
-                        templLast = templLast.next;
-                    }
-                    for (int j = 0; j < net.convolutions.size / 3; j++) {
-                        grad += templLast.grad;				//sumarizuje gradient predhozi vrstvy
-                        templLast = templLast.next;
-                    }
-                    templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.prvniVrstva;
-                    for (int k = 0; k < templ.weights2D.length; k++) {
-                        for (int q = 0; q < templ.weights2D[0].length; q++) {
-                            templ.weights2D[k][q] += net.speedL2CL * templ.grad * templ.avInput[k][q];
-                        }
-                    }
-                    templ = templ.next;
-                }
-
-                //pro filtry 0 az 4
-                templ = net.convolutions.head;
-                for (int i = 0; i < net.convolutions.size / 3; i++) {
-                    grad = 0;
-                    Convolution templLast = net.convolutions.head;		//vrstva se ktere scita gradienty
-                    while (templLast.cisloFiltra != net.convolutions.size / 3 ) {
-                        templLast = templLast.next;
-                    }
-                    for (int j = 0; j < net.convolutions.size / 3; j++) {
-                        grad += templLast.grad;					//sumarizuje gradient predhozi vrstvy
-                        templLast = templLast.next;
-                    }
-                    templ.grad = grad * 0.388 * (1.7159 - templ.averageOutput) * (1.7159 + templ.averageOutput) / Neuronet.druhaVrstva;
-                    for (int k = 0; k < templ.weights3D.length; k++) {
-                        for (int q = 0; q < templ.weights3D[0].length; q++) {
-                            for(int z=0; z < templ.weights3D[0][0].length; z++) {
-                                templ.weights3D[k][q][z] += net.speedL3CL * templ.grad * templ.avInput[k][q];
-                            }
-                        }
-                    }
-                    templ = templ.next;
-                }
+                templ = templ.next;
+            }
 
                 if (Answer != lokResult) {
                     lokError++;
@@ -489,24 +569,17 @@ public class NNAutoencoders implements Serializable {
                     System.out.println("Shake flag false");
                 }
 
-                if ((iteration % peopleInSet) == 0) {
-//                    lokError = lokError/peopleInSet*100;
-//                    if (lokError < errorMin) {
-//                        errorMin = lokError;
-//                        System.out.println("");
-//                        System.out.println("epoch: "+iteration / (learningSet*2)+"  >>>>>   Minimalni chyba: " +(int)errorMin+"%");
-//                        serializace("Best weights");
-//                    }
-//                    else {
-//                        System.out.println("Error in "+iteration / (learningSet*2)+" epoch: "+(int)lokError+"%");
-//                    }
+                if ((iteration % combi.length) == 0) {
                     testValue = test();
+                    shuffleDataSets();
+                    if(gradNull>0) 
+                        System.out.println("Grad 0: "+gradNull);
                     if (testValue > bestTestValue) {
                         bestTestValue = testValue;
                         System.out.println("");
                         System.out.println("Better result >>>>>>>>>>>  "+bestTestValue);
                         System.out.println("");
-                        serializace("Best weights");
+//                        net.serialization();
 //                        sendReport("New best value", testValue);
                     }
                     writeProgressInfo(iteration, testValue);
@@ -533,8 +606,9 @@ public class NNAutoencoders implements Serializable {
                 }
                 lastError = (int) (lokError / iteration * 100);
                 iteration++;
-                shuffleDataSets();
+               
             }
+            gradNull = 0;
         
         }
        
@@ -695,22 +769,26 @@ public class NNAutoencoders implements Serializable {
         }
     }
 
-    static double[] doOneArray(double[][][] thirdConvolution) {
-        int length = thirdConvolution.length * thirdConvolution[0].length;
-        if(thirdConvolution[0][0] != null)
-            length *= thirdConvolution[0][0].length;
+    static double[] doOneArray(Picture[] inputArray) {
+        int length = inputArray.length * inputArray[0].map2D.length;
+        int kEnd = 1;
+//        if(inputArray[0].map2D[1] != null)
+        try {    
+            length *= inputArray[0].map2D[1].length;
+        } catch(Exception e) {}
         double[] result = new double[length];
         int counter = 0;
-        for (int i = 0; i < thirdConvolution.length; i++) {
-            for (int j = 0; j < thirdConvolution[i].length; j++) {
-                for (int k = 0; k < thirdConvolution[i][j].length; k++) {
-                    result[counter] = thirdConvolution[i][j][k];
+        for (int i = 0; i < inputArray.length; i++) {
+            for (int j = 0; j < inputArray[i].map2D.length; j++) {
+                for (int k = 0; k < kEnd; k++) {
+                    result[counter] = inputArray[i].map2D[j][k];
                     counter++;
                 }
             }
         }
         return result;
     }
+
 
     static String writeSrtuct() {
         String text = "NN struct:" + "\r\n";
@@ -734,7 +812,7 @@ public class NNAutoencoders implements Serializable {
 
     static void writeProgressInfo(int iteration, double testValue) {
         progressInfo += "epoch = " + iteration / (learningSet*2) + " test value = " + testValue + "\r\n";
-        System.out.println("epoch = " + iteration / (learningSet*2) + " test value = " + testValue);
+        System.out.println("epoch = " + iteration / combi.length + " test value = " + testValue);
         write("Short progress info.txt", progressInfo);
     }
 
@@ -793,12 +871,9 @@ public class NNAutoencoders implements Serializable {
     }
 
     static int test() throws Exception {  
-        int vysledek=0;
         double[] output0 = new double[Neuronet.tretiVrstva];
         double[] output1 = new double[Neuronet.tretiVrstva];
         double[] output2 = new double[Neuronet.tretiVrstva];
-        int vysOperace = -2;
-        int limit = (int)(learningSet * 2); //pocet testovych iteraci pro (learning set)
         for(int w=0; w<combi.length; w++) {
             for(int i=0; i<combi[0].length; i++) {
                 calculateResult(ImgToRightPicture(imgNumber.get(combi[w][i]), true));
@@ -817,14 +892,14 @@ public class NNAutoencoders implements Serializable {
                     }
                 }
             }
-       }
+        }
         double a,b;
         int counterRight = 0;
         int counteWrong = 0;
         for(int i=0;i<Neuronet.tretiVrstva; i++) {
             a = Math.abs(output0[i] - output1[i]);
             b = Math.abs(output0[i] - output2[i]);
-            if(a>b) {
+            if(a<b) {
                 counterRight++;
             }
             else {
@@ -832,7 +907,7 @@ public class NNAutoencoders implements Serializable {
             }
         }
         System.out.println("Right: "+counterRight+" / wrong: "+counteWrong);
-        return (int)(100);
+        return (int)(100-counteWrong);
     }
     
     static BufferedImage drawRectungle(int x, int y, int size, BufferedImage result) {

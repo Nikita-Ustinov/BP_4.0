@@ -129,7 +129,7 @@ public class Convolution implements Serializable
         }
          for(int i=0; i<newFilter.length; i++) {
             for(int j=0; j<newFilter[0].length; j++) {
-                if((cisloFiltra != Neuronet.numberOfFulters/3)&&(cisloFiltra != Neuronet.numberOfFulters/3*2)){
+                if((cisloFiltra != Neuronet.numberOfFulters/Neuronet.counvolutionGroups)&&(cisloFiltra != Neuronet.numberOfFulters/Neuronet.counvolutionGroups*2)&&(cisloFiltra != Neuronet.numberOfFulters/Neuronet.counvolutionGroups*3)){
                     do{
                         newFilter[i][j] = -range + Math.random()*range*2;
                     } while (newFilter[i][j] == templ.weights2D[i][j]);
