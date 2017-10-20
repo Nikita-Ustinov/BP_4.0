@@ -1,0 +1,5 @@
+NN struct:
+vstupni vrstva: 2401
+prvni vrstva: 1200
+druha vrtstva: 200
+treti vrstva: 100

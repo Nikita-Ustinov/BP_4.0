@@ -33,8 +33,8 @@ public class NNAutoencoders implements Serializable {
     static int stillOneValue = -1;
     static int learningSet = 4;
     static int peopleInSet = 2;
-    static int[][] combi = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}}; //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
-    static HashMap<Integer, String> imgNumber = new HashMap<>();
+    static int[][] combi = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}};        //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
+    static HashMap<Integer, String> imgNumber = new HashMap<>();        //tady lezi adresa kazdeho obrazka z data seta
 
     public static void main(String[] args) throws Exception {
         createFirstDataSet();
@@ -165,7 +165,7 @@ public class NNAutoencoders implements Serializable {
          return vysledek;
     }
 
-    static int calculateResult(Picture picture) throws Exception {
+    static void calculateResult(Picture picture) throws Exception {
         Convolution templ = net.convolutions.head;                              
         for (int i = 0; i < net.convolutions.size; i++) {
             templ.clearInputMass();                                                     //mazani zbytecnych dat
@@ -238,14 +238,14 @@ public class NNAutoencoders implements Serializable {
             templ1 = templ1.next;
         }
         net.l2.countOutputs();
-        int index = 0;                  //cislo neuronu ktery vyhral
-        Max = net.l2.outputs[0];
-        for (int i = 0; i < net.l2.outputs.length; i++) {
-            if (Max < net.l2.outputs[i]) {
-                Max = net.l2.outputs[i];
-                index = i;
-            }
-        }
+//        int index = 0;                  //cislo neuronu ktery vyhral
+//        Max = net.l2.outputs[0];
+//        for (int i = 0; i < net.l2.outputs.length; i++) {
+//            if (Max < net.l2.outputs[i]) {
+//                Max = net.l2.outputs[i];
+//                index = i;
+//            }
+//        }
 
         templ = net.convolutions.head;                              
         for (int i = 0; i < net.convolutions.size; i++) {
@@ -253,11 +253,10 @@ public class NNAutoencoders implements Serializable {
             templ.countAverageOutput();
             templ = templ.next;
         }
-        return index;
+//        return index;
     }
 
-
-   static double[][] function(double[][] picture, String nazevFunkce) {
+    static double[][] function(double[][] picture, String nazevFunkce) {
         double[][] result = picture;
         int jEnd = 1;
         try{
@@ -280,8 +279,7 @@ public class NNAutoencoders implements Serializable {
         }
         return result;
     }
-
-    
+ 
     static void study() throws Exception {
 //        sendReport("Start learning", 0);
         long start = System.nanoTime();
@@ -343,46 +341,43 @@ public class NNAutoencoders implements Serializable {
         while(true) {
             for(int w=0; w<combi.length; w++) {
                 for(int i=0; i<combi[0].length; i++) {
-                    lokResult = calculateResult(ImgToRightPicture(imgNumber.get(combi[w][i]), true));
+                    calculateResult(ImgToRightPicture(imgNumber.get(combi[w][i]), true));
                     switch (i) {
                         case 0: {
-                            output0 = net.l2.outputs;
+//                            output0 = net.l2.outputs;
+                            System.arraycopy(net.l2.outputs, 0, output0, 0, output0.length);
                             break;
                         }
                         case 1: {
-                            output1 = net.l2.outputs;
+//                            output1 = net.l2.outputs;
+                            System.arraycopy(net.l2.outputs, 0, output1, 0, output0.length);
                             break;
                         }
                         case 2: {
-                            output2 = net.l2.outputs;
+//                            output2 = net.l2.outputs;
+                            System.arraycopy(net.l2.outputs, 0, output2, 0, output0.length);
                             break;
                         }
                     }
                 }
-    //            lokResult = calculateResult(ImgToRightPicture(imgNumber.get(key), true));
                 Neuron templ3 = net.l2.head;
                 if((Double.isNaN(templ3.weights[1])||(Double.isNaN(net.l0.head.weights[1]))||(Double.isNaN(net.l1.head.weights[1])))) { //kontrola siti
                     System.out.println("NAN NAN NAN iteration "+ iteration);   //kontrola neuronu
                 }
-    //            for (int i = 0; i < Neuronet.tretiVrstva; i++) {
-    //                if (Answer == i) {
-    //                    err[i] = Max - templ3.output;				//zapisuje signal chyby vystupni vrstvy
-    //                } else {
-    //                    err[i] = 0 - templ3.output;
-    //                }
-    //                templ3 = templ3.next;
-    //            }
                 double a,b;
+                int countWrongWay = 0;
                 for(int i=0;i<err.length; i++) {
                     a = Math.abs(output0[i] - output1[i]);
                     b = Math.abs(output0[i] - output2[i]);
                     if(a>=b) {
                         err[i] = 1;
+                        countWrongWay++;
                     }
                     else {
                         err[i] = 0;
                     }
                 }
+//                System.out.println("Hyba v "+countWrongWay+" polozkach");
                  Neuron templ2;
             templ3 = net.l2.head;
             double delta = 0;
@@ -399,7 +394,7 @@ public class NNAutoencoders implements Serializable {
                 templ3 = templ3.next;
             }
             delta = delta/deltaCounter;
-                System.out.println("Average change weights on l2: "+delta);
+//                System.out.println("Average change weights on l2: "+delta);
 
             double grad = 0;
             Neuron templ1;
@@ -424,7 +419,7 @@ public class NNAutoencoders implements Serializable {
                 templ2 = templ2.next;
             }
             delta = delta/deltaCounter;
-            System.out.println("Average change weights on l1: "+delta);
+//            System.out.println("Average change weights on l1: "+delta);
             delta = 0;
             deltaCounter = 0;
             templ1 = net.l0.head;
@@ -445,7 +440,7 @@ public class NNAutoencoders implements Serializable {
             }
             
             delta = delta/deltaCounter;
-            System.out.println("Average change weights on l0: "+delta);
+//            System.out.println("Average change weights on l0: "+delta);
             
             //pro filtry 15 az 19
             int minusCounter = 1;
@@ -789,7 +784,6 @@ public class NNAutoencoders implements Serializable {
         return result;
     }
 
-
     static String writeSrtuct() {
         String text = "NN struct:" + "\r\n";
         text+= "vstupni vrstva: "+ net.inputLength+ "\r\n";
@@ -879,15 +873,15 @@ public class NNAutoencoders implements Serializable {
                 calculateResult(ImgToRightPicture(imgNumber.get(combi[w][i]), true));
                 switch (i) {
                     case 0: {
-                        output0 = net.l2.outputs;
+                        System.arraycopy(net.l2.outputs, 0, output0, 0, output0.length);
                         break;
                     }
                     case 1: {
-                        output1 = net.l2.outputs;
+                        System.arraycopy(net.l2.outputs, 0, output1, 0, output0.length);
                         break;
                     }
                     case 2: {
-                        output2 = net.l2.outputs;
+                        System.arraycopy(net.l2.outputs, 0, output2, 0, output0.length);
                         break;
                     }
                 }
