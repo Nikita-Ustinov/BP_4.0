@@ -19,7 +19,7 @@ public class EmailClient {
 //                                                                                         //   email, Тема и само сообщение        
 //    }
     
-   private String user = "ustinov.nikita.01@gmail.com";
+   private String user = "ustinov_nikita_01@mail.ru";
    private String pass =  "4981273nN"; 
    public static void sendMessege(String to, String sub, String msg) {
        EmailClient report = new EmailClient(to, sub, msg);
