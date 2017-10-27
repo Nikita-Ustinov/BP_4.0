@@ -33,10 +33,12 @@ public class NNAutoencoders implements Serializable {
     static int stillOneValue = -1;
     static int learningSet = 4;
     static int peopleInSet = 2;
-    static int[][] combi = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}};        //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
+    static int[][] combi = new int[4][3]; // = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}};        //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
     static HashMap<Integer, String> imgNumber = new HashMap<>();        //tady lezi adresa kazdeho obrazka z data seta
 
     public static void main(String[] args) throws Exception {
+        createCombinations();
+        pritnCombinations();
 //        createFirstDataSet();
 //        sendReport(_info, Max);
 //        net = deseralizace("BestWeights");
@@ -49,16 +51,35 @@ public class NNAutoencoders implements Serializable {
 //        study();
     }
     
-    void createCombinations() {
-        boolean isEnd = false;
+    static void pritnCombinations() {
+        for(int i=0; i<combi.length; i++) {
+            for(int j=0; j<3; j++) {
+                System.out.print(combi[i][j]+" ");
+            }
+            System.out.println("");
+        }
+    }
+    
+    static void createCombinations() {
+//        boolean isEnd = false;
         int group1Counter = 0;
         int group2Counter = 1;
-        int groupNumber = 3;
-        int groupSize = 2;
-        int numberOfCombinations = 12;
+        int groupNumber = peopleInSet;
+        int groupSize = learningSet/peopleInSet;
+        int numberOfCombinations = combi.length;
         HashMap<Integer, Integer[]> groups = new HashMap<>();
         int counter=0;
-        for(Integer i=0; i<numberOfCombinations; i++) { //naplneni groups
+        int inFirstGroupCounter1 = 0;    //pro prvni hodnotu v combi
+        int inFirstGroupCounter2 = 1;    //pro druhou hodnotu v combi
+        int inSecondGroupCounter = 0;    //pro treti hodnotu v combi
+        boolean isEndFirstGroup;
+        boolean isJumpMode = false;
+        if(groupSize == 2) 
+            isEndFirstGroup  = true;
+        else 
+            isEndFirstGroup = false;
+        
+        for(Integer i=0; i<groupNumber; i++) { //naplneni groups
             Integer[] oneGroup = new Integer[groupSize];
             for(int j=0;j<groupSize; j++) {
                 oneGroup[j] = counter;
@@ -66,27 +87,32 @@ public class NNAutoencoders implements Serializable {
             }
             groups.put(i, oneGroup);
         }
-        
-        int inFirstGroupCounter1 = 0;    //pro prvni hodnotu v combi
-        int inFirstGroupCounter2 = 1;    //pro druhou hodnotu v combi
-        int inSecondGroupCounter = 0;    //pro treti hodnotu v combi
-        boolean isEndFirstGroup = false;
 
         for(int i=0; i<numberOfCombinations; i++) {
             Integer[] group1 = groups.get(group1Counter);
             Integer[] group2 = groups.get(group2Counter);
+            if(i==7){
+                i=i;
+            }
             
             combi[i][0] = group1[inFirstGroupCounter1];
             combi[i][1] = group1[inFirstGroupCounter2];
-            combi[i][2] = group1[inSecondGroupCounter];
+            combi[i][2] = group2[inSecondGroupCounter];
             
             if(inSecondGroupCounter+1<groupSize) {
                 inSecondGroupCounter++;
             }
             else {
                 inSecondGroupCounter=0;
-                if(!(group2Counter+1<groupNumber)) {
-                    group2Counter++;
+                if((group1Counter > group2Counter)&(group2Counter+2 != groupNumber)&(groupNumber-1 - group1Counter>0))
+                    isJumpMode = true;
+                if((group2Counter+1<groupNumber)&(group2Counter+1 != group1Counter)||(isJumpMode)) {
+                    if(isJumpMode){
+                        group2Counter += 2;
+                        isJumpMode = false;
+                    }
+                    else 
+                        group2Counter += 1;
                 }
                 else {
                     if(isEndFirstGroup) {
@@ -94,7 +120,6 @@ public class NNAutoencoders implements Serializable {
                         group2Counter = 0;
                         inFirstGroupCounter1 = 0;
                         inFirstGroupCounter2 = 1;
-                        inSecondGroupCounter = 0;
                         isEndFirstGroup = false;
                     }
                     else {
@@ -106,7 +131,7 @@ public class NNAutoencoders implements Serializable {
                             inFirstGroupCounter2++;
                         }
                     }
-                    if(inFirstGroupCounter1+1 != inFirstGroupCounter2) {
+                    if((inFirstGroupCounter1+1 == inFirstGroupCounter2)&(inFirstGroupCounter2+1 == groupSize)) {
                         isEndFirstGroup = true;
                     }
                 }
