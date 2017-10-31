@@ -22,9 +22,9 @@ public class RealTimeChart {
       static final SwingWrapper<XYChart> swTest = new SwingWrapper<XYChart>(chartTest);
       
       public static void firstShowChart() throws Exception {
-        swTest.displayChart();
         chartTest.getStyler().setYAxisMax(100.0);
         chartTest.getStyler().setYAxisMin(0.0);
+        swTest.displayChart();
       }
       
        public static void displayValueOnChart(double value) throws IOException {
@@ -40,6 +40,7 @@ public class RealTimeChart {
                 public void run() {
                     chartTest.updateXYSeries("testValue", dataListX, dataListY, null);
                     swTest.repaintChart(); 
+                   
                 } 
             } 
         );

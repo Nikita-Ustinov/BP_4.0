@@ -31,24 +31,31 @@ public class NNAutoencoders implements Serializable {
     public int iterationWithoutNewNeuron = 0;
     boolean newNeuron = false;
     static int stillOneValue = -1;
-    static int learningSet = 4;
-    static int peopleInSet = 2;
-    static int[][] combi = new int[4][3]; // = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}};        //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
+    static int learningSet = 20;
+    static int peopleInSet = 10;
+    static int[][] combi = new int[180][3]; // = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}};        //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
     static HashMap<Integer, String> imgNumber = new HashMap<>();        //tady lezi adresa kazdeho obrazka z data seta
 
     public static void main(String[] args) throws Exception {
-        createCombinations();
-        pritnCombinations();
-//        createFirstDataSet();
-//        sendReport(_info, Max);
-//        net = deseralizace("BestWeights");
-//        net = new Neuronet();
-//        deserializationNN();
-//        int testResult = test();
-//        System.out.println("test result: "+testResult);
-//        net.serialization();
-//        net.deserialization();
+//        createCombinations();
+        createFirstDataSet();
+        net = new Neuronet();
+        net.deserialization();
+        Database.print(calculateResult(ImgToRightPicture(imgNumber.get(0), true)));
+        createDatabase();
+        
 //        study();
+    }
+    
+    static void createDatabase() throws Exception {
+        double[] features = new double[net.l2.length];
+        Database database = new Database();
+        for(int i=0; i<peopleInSet; i++) {
+            features = calculateResult(ImgToRightPicture(imgNumber.get(i), true));
+            database.addPeople(i, features);
+        }
+        database.printDatabase();
+        
     }
     
     static void pritnCombinations() {
@@ -59,6 +66,17 @@ public class NNAutoencoders implements Serializable {
             System.out.println("");
         }
     }
+    
+   static void printGroup(HashMap<Integer, Integer[]> input)  {
+       Integer[] templ;
+       for(int i=0; i<input.size(); i++) {
+           templ = input.get(i);
+           for(int j=0; j<2; j++) {
+               System.out.print(templ[j]+" ");;
+           }
+           System.out.println("");
+       }
+   }
     
     static void createCombinations() {
 //        boolean isEnd = false;
@@ -87,24 +105,29 @@ public class NNAutoencoders implements Serializable {
             }
             groups.put(i, oneGroup);
         }
+        
+//        printGroup(groups);
 
         for(int i=0; i<numberOfCombinations; i++) {
             Integer[] group1 = groups.get(group1Counter);
             Integer[] group2 = groups.get(group2Counter);
-            if(i==7){
+            if(i==117){
                 i=i;
             }
-            
-            combi[i][0] = group1[inFirstGroupCounter1];
-            combi[i][1] = group1[inFirstGroupCounter2];
-            combi[i][2] = group2[inSecondGroupCounter];
+            try{
+                combi[i][0] = group1[inFirstGroupCounter1];
+                combi[i][1] = group1[inFirstGroupCounter2];
+                combi[i][2] = group2[inSecondGroupCounter];
+            } catch(Exception e) {
+                i=i;
+            }
             
             if(inSecondGroupCounter+1<groupSize) {
                 inSecondGroupCounter++;
             }
             else {
                 inSecondGroupCounter=0;
-                if((group1Counter > group2Counter)&(group2Counter+2 != groupNumber)&(groupNumber-1 - group1Counter>0))
+                if((group1Counter > group2Counter)&(group2Counter+2 < groupNumber)&(groupNumber-1 - group1Counter>0)&(group1Counter - 1 == group2Counter))
                     isJumpMode = true;
                 if((group2Counter+1<groupNumber)&(group2Counter+1 != group1Counter)||(isJumpMode)) {
                     if(isJumpMode){
@@ -145,10 +168,14 @@ public class NNAutoencoders implements Serializable {
         int elementNumber;
         int[] templ;
         for(int i=0; i<combi.length-1; i++) {
+            try {
             elementNumber = (int)(Math.random()*(combi.length-i-1));
             templ = combi[combi.length-i-1];
-            combi[learningSet-i-1] = combi[elementNumber];
+            combi[combi.length-i-1] = combi[elementNumber];
             combi[elementNumber] = templ;
+            } catch(ArrayIndexOutOfBoundsException e) {
+               i=i;
+            }
         }
     }
     
@@ -217,16 +244,25 @@ public class NNAutoencoders implements Serializable {
         try {
             img = ImageIO.read(new File(file));
         } catch (IOException e) {
-            System.out.println("Nelze precist file");
+            try{
+                String newFile = file.substring(0, file.indexOf(".")) + ".JPEG";
+                img = ImageIO.read(new File(newFile));
+            }catch(IOException ee) {
+                System.out.println("Nelze precist file");
+            }
         }
         Picture vysledek;
         if(isColor) {
             vysledek = new Picture(Neuronet.inputPictureFormat,Neuronet.inputPictureFormat,3);
             file += ".jpg";
-            int color;
+            int color = 0;
             for (int i=0;i<Neuronet.inputPictureFormat; i++) {
                 for (int j=0; j<Neuronet.inputPictureFormat; j++) {
-                    color = img.getRGB(j, i);
+                    try {
+                        color = img.getRGB(j, i);
+                    }catch(NullPointerException e) {
+                        i=i;
+                    }
                     for(int k=0; k<3; k++) {
                         if (k==0) {
                             vysledek.map3D[i][j][k] = (color >>> 16) & 0xFF; //red 
@@ -261,7 +297,7 @@ public class NNAutoencoders implements Serializable {
          return vysledek;
     }
 
-    static void calculateResult(Picture picture) throws Exception {
+    static double[] calculateResult(Picture picture) throws Exception {
         Convolution templ = net.convolutions.head;                              
         for (int i = 0; i < net.convolutions.size; i++) {
             templ.clearInputMass();                                                     //mazani zbytecnych dat
@@ -349,6 +385,7 @@ public class NNAutoencoders implements Serializable {
             templ.countAverageOutput();
             templ = templ.next;
         }
+        return net.l2.outputs;
 //        return index;
     }
 
@@ -408,6 +445,7 @@ public class NNAutoencoders implements Serializable {
         double[] output0 = new double[Neuronet.tretiVrstva];
         double[] output1 = new double[Neuronet.tretiVrstva];
         double[] output2 = new double[Neuronet.tretiVrstva];
+        boolean testMode = false;
         int iteration = 1;
         int gradNull = 0;
         double lokError = 0;
@@ -416,6 +454,7 @@ public class NNAutoencoders implements Serializable {
         double errorMin = 100;
         int testValue = 0;
         int bestTestValue = 0;
+        double countWrongWay = 0;
 //        double lastResult = -1;
         int changeIteration = 0;
         boolean shakeFlag = false;
@@ -447,12 +486,12 @@ public class NNAutoencoders implements Serializable {
                     System.out.println("NAN NAN NAN iteration "+ iteration);   //kontrola neuronu
                 }
                 double a,b;
-                int countWrongWay = 0;
+                
                 for(int i=0;i<err.length; i++) {
                     a = Math.abs(output0[i] - output1[i]);
                     b = Math.abs(output0[i] - output2[i]);
                     if(a>=b) {
-                        err[i] =1;
+                        err[i] = 1;
                         countWrongWay++;
                     }
                     else {
@@ -632,10 +671,12 @@ public class NNAutoencoders implements Serializable {
                 }
                 templ = templ.next;
             }
+                
+//                System.out.println("iteration: "+iteration);
 
-                if (Answer != lokResult) {
-                    lokError++;
-                }
+//                if (Answer != lokResult) {
+//                    lokError++;
+//                }
 
                 if (shakeFlag) {
                     net.speedL1CL /= 5;
@@ -645,9 +686,17 @@ public class NNAutoencoders implements Serializable {
                     shakeFlag = false;
                     System.out.println("Shake flag false");
                 }
-
+                
                 if ((iteration % combi.length) == 0) {
-                    testValue = test();
+                    if((countWrongWay /= combi.length)*100< 20) {
+                        testMode = true;
+                    }
+                    if(!testMode) {
+                        testValue = (int)(100-countWrongWay);
+                    }
+                    else {
+                        testValue = test();
+                    }
                     RealTimeChart.displayValueOnChart(testValue);
                     shuffleDataSets();
                     if(gradNull>0) 
@@ -659,11 +708,11 @@ public class NNAutoencoders implements Serializable {
                         System.out.println("");
                         net.serialization();
                         sendReport("New best value", testValue);
-                       RealTimeChart.SaveChart();
+                        RealTimeChart.SaveChart();
                     }
                     writeProgressInfo(iteration, testValue);
 
-                    if (epochaWithoutNewNeuron>=50) {
+                    if (epochaWithoutNewNeuron>=30) {
                         System.out.println("epochaWithoutNewNeuron "+ epochaWithoutNewNeuron);
                         System.out.println("Error difference " + (lastResult-lokError/iteration*100));
                         if (Math.abs(lastResult-testValue) < 5) {	
@@ -697,7 +746,7 @@ public class NNAutoencoders implements Serializable {
     static Boolean addNeuron(){
         counterNeuronNew++;
         System.out.println("---------------------------New neuron added!!---------------------------------");
-        if (counterAddNeuron==1){
+        if (counterAddNeuron==0){
             counterAddNeuron=0;
             net.l1.addNeuron();
             net.druhaVrstva++;
@@ -1080,5 +1129,10 @@ public class NNAutoencoders implements Serializable {
             }
         } catch (IOException e) {}
     }
+    
+    static void clearScreen() {  
+        System.out.print("\033[H\033[2J");  
+        System.out.flush();  
+   }  
     
 }

@@ -12,13 +12,13 @@ public final class Neuronet implements Serializable
 {	
     public List l0, l1, l2;
     public static int inputLength = 2401;   //625;	//pro fully connection neuronet
-    public static int prvniVrstva = 51;		
-    public static int druhaVrstva = 50;		
-    public static int tretiVrstva = 128;
-    public static double speedLFCN = 0.002;				//rychlost uceni pro "fully connection neuronet"
-    public static double speedL1CL = 0.002;				//rychlost uceni pro prvni "convolution layer" 10 az 14
-    public static double speedL2CL = 0.002;				//rychlost uceni pro druhy "convolution layer"  5 az 9
-    public static double speedL3CL = 0.002;				//rychlost uceni pro treti "convolution layer"  0 az 4
+    public static int prvniVrstva = 1600;		
+    public static int druhaVrstva = 100;		
+    public static int tretiVrstva = 100;
+    public static double speedLFCN = 0.001;				//rychlost uceni pro "fully connection neuronet"
+    public static double speedL1CL = 0.001;				//rychlost uceni pro prvni "convolution layer" 10 az 14
+    public static double speedL2CL = 0.001;				//rychlost uceni pro druhy "convolution layer"  5 az 9
+    public static double speedL3CL = 0.001;				//rychlost uceni pro treti "convolution layer"  0 az 4
     public static int inputPictureFormat = 40; //px                         //jestli napriklad obrazek 20x20 davame sem 20
     public int inputLengthOwn;
     public int prvniVrstvaOwn;
@@ -198,7 +198,9 @@ public final class Neuronet implements Serializable
         in = new ObjectInputStream(new FileInputStream("serialization files/convolutions.out")); 
         convolutions = (ListOfConvolutions) in.readObject(); 
 
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            throw new Exception("Nepovedlo desearializovat net");
+        }
         
         l0.unite(l0_1, l0_2);
         
