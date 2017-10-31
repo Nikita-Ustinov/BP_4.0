@@ -31,7 +31,7 @@ public class NNAutoencoders implements Serializable {
     public int iterationWithoutNewNeuron = 0;
     boolean newNeuron = false;
     static int stillOneValue = -1;
-    static int learningSet = 20;
+    static int learningSet = 10;
     static int peopleInSet = 10;
     static int[][] combi = new int[180][3]; // = {{0,1,2}, {0,1,3}, {2,3,0}, {2,3,1}};        //4-pocet kombinaci, 3-pocet polozek v jedne kombinaci
     static HashMap<Integer, String> imgNumber = new HashMap<>();        //tady lezi adresa kazdeho obrazka z data seta
@@ -41,8 +41,13 @@ public class NNAutoencoders implements Serializable {
         createFirstDataSet();
         net = new Neuronet();
         net.deserialization();
-        Database.print(calculateResult(ImgToRightPicture(imgNumber.get(0), true)));
         createDatabase();
+        Database d = new Database();
+        d = d.deserializace();
+        for(int i=0; i<10; i++) {
+            String name = d.determinePerson(calculateResult(ImgToRightPicture(imgNumber.get(i), true))); 
+            System.out.println(name);  
+        }
         
 //        study();
     }
@@ -52,9 +57,12 @@ public class NNAutoencoders implements Serializable {
         Database database = new Database();
         for(int i=0; i<peopleInSet; i++) {
             features = calculateResult(ImgToRightPicture(imgNumber.get(i), true));
-            database.addPeople(i, features);
+//            System.arraycopy(calculateResult(ImgToRightPicture(imgNumber.get(i), true)),0,features,0, net.l2.length);
+            database.addPerson(i, features);
         }
-        database.printDatabase();
+        database.serializace();
+        
+//        database.printDatabase();
         
     }
     

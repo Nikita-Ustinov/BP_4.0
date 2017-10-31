@@ -15,42 +15,42 @@ import java.util.Vector;
 
 public class Database implements Serializable
 {
-    int length;
-    LinkedList<Person> persons = new LinkedList<Person>();
+    int Length;
+    LinkedList<Person> Persons = new LinkedList<Person>();
     
     Database() {
         Person p = new Person();
     }
     
-    public void addPeople(int number, double[] features) {
+    public void addPerson(int number, double[] features) {
         Person p = new Person(number, features);
-        persons.push(p);
-        length++;
+        Persons.push(p);
+        Length++;
     }
     
     public void printDatabase() {
-        for(int i=0; i<persons.size(); i++) {
-            System.out.print(persons.get(i).Name+"  features[0..5]: ");
+        for(int i=0; i<Persons.size(); i++) {
+            System.out.print(Persons.get(i).Name+"  features[0..5]: ");
             for(int j=0; j<10; j++) {
-                System.out.print(persons.get(i).Features[j]+",");
+                System.out.print(Persons.get(i).Features[j]+",");
                 System.out.println("");
             }
         }
     }
     
-    public String determinePerson(double[] features) {
-        double[] distance = new double[length];
+    public  String determinePerson(double[] features) {
+        double[] distance = new double[Length];
         double min = 9999;
         int minNumber = -1;
-        for(int i=0; i<persons.size(); i++) {
-            distance[i] = difference(features, persons.get(i).Features);
+        for(int i=0; i<Persons.size(); i++) {
+            distance[i] = difference(features, Persons.get(i).Features);
             if(min>distance[i]){
                 min = distance[i];
                 minNumber = i;
             }
         }
-        distance = sort(distance);
-        String name = persons.get(minNumber).Name;
+//        distance = sort(distance);
+        String name = Persons.get(minNumber).Name;
         return name;
     }
     

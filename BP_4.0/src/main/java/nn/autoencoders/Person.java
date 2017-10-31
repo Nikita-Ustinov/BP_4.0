@@ -1,9 +1,10 @@
 
 package nn.autoencoders;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
-public class Person {
+public class Person implements Serializable{
     static HashMap<Integer, String> names = new HashMap<Integer, String>();
     String Name;
     int Number;
@@ -24,7 +25,8 @@ public class Person {
     
     Person(int number, double[] features) {
         Number = number;
-        Features = features;
+        Features = new double[Neuronet.tretiVrstva];
+        System.arraycopy(features, 0, Features, 0, Neuronet.tretiVrstva);
         Name = names.get(number);
     }
     

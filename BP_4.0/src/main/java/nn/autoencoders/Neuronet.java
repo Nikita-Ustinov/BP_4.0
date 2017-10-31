@@ -179,16 +179,16 @@ public final class Neuronet implements Serializable
     } 
 
     void deserialization() throws Exception { 
-        List l0_1 = null;
-        List l0_2 = null;
-        
+        List l0_1 = null; 
+        List l0_2 = null; 
+
         try { 
         ObjectInputStream in = new ObjectInputStream(new FileInputStream("serialization files/l0_1.out")); 
         l0_1 = (List) in.readObject(); 
         
         in = new ObjectInputStream(new FileInputStream("serialization files/l0_2.out")); 
         l0_2 = (List) in.readObject(); 
-
+     
         in = new ObjectInputStream(new FileInputStream("serialization files/l1.out")); 
         l1 = (List) in.readObject(); 
 
@@ -199,11 +199,10 @@ public final class Neuronet implements Serializable
         convolutions = (ListOfConvolutions) in.readObject(); 
 
         } catch (Exception e) {
-            throw new Exception("Nepovedlo desearializovat net");
-        }
-        
-        l0.unite(l0_1, l0_2);
-        
+            throw new Exception ("Deserialization error");
+        } 
+
+        l0.unite(l0_1, l0_2); 
     }
 }
 
